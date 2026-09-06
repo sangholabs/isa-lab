@@ -84,29 +84,50 @@ function Breakdown({ title, result }: { title: string; result: TaxResult }) {
       {result.lines.length === 0 ? (
         <p className="text-[12px] text-muted">실현손익이 없습니다.</p>
       ) : (
-        <table className="w-full text-[12px]">
-          <thead className="text-muted">
-            <tr className="border-b border-line">
-              <th className="py-1.5 text-left font-normal">항목</th>
-              <th className="py-1.5 text-right font-normal">과세표준</th>
-              <th className="py-1.5 text-right font-normal">세율</th>
-              <th className="py-1.5 text-right font-normal">세금</th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          {/* 모바일: 표 대신 항목 카드 */}
+          <div className="space-y-2 sm:hidden">
             {result.lines.map((l, i) => (
-              <tr key={i} className="border-b border-line/50 align-top">
-                <td className="py-1.5 pr-2">
-                  <div>{l.label}</div>
-                  <div className="text-[11px] text-muted">{l.note}</div>
-                </td>
-                <td className="py-1.5 text-right tabular-nums">{l.taxableBase ? won(l.taxableBase) : "—"}</td>
-                <td className="py-1.5 text-right tabular-nums">{l.rate ? `${(l.rate * 100).toFixed(1)}%` : "—"}</td>
-                <td className="py-1.5 text-right tabular-nums">{won(l.tax)}</td>
-              </tr>
+              <div key={i} className="rounded-lg border border-line bg-panel2 p-2.5 text-[12px]">
+                <div className="flex items-start justify-between gap-2">
+                  <span>{l.label}</span>
+                  <span className="shrink-0 tabular-nums font-medium">{won(l.tax)}</span>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{l.note}</p>
+                {(l.taxableBase > 0 || l.rate > 0) && (
+                  <p className="mt-1 text-[11px] tabular-nums text-muted">
+                    과세표준 {l.taxableBase ? won(l.taxableBase) : "—"}
+                    {l.rate ? ` · 세율 ${(l.rate * 100).toFixed(1)}%` : ""}
+                  </p>
+                )}
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+
+          <table className="hidden w-full text-[12px] sm:table">
+            <thead className="text-muted">
+              <tr className="border-b border-line">
+                <th className="py-1.5 text-left font-normal">항목</th>
+                <th className="py-1.5 text-right font-normal">과세표준</th>
+                <th className="py-1.5 text-right font-normal">세율</th>
+                <th className="py-1.5 text-right font-normal">세금</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.lines.map((l, i) => (
+                <tr key={i} className="border-b border-line/50 align-top">
+                  <td className="py-1.5 pr-2">
+                    <div>{l.label}</div>
+                    <div className="text-[11px] text-muted">{l.note}</div>
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums">{l.taxableBase ? won(l.taxableBase) : "—"}</td>
+                  <td className="py-1.5 text-right tabular-nums">{l.rate ? `${(l.rate * 100).toFixed(1)}%` : "—"}</td>
+                  <td className="py-1.5 text-right tabular-nums">{won(l.tax)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </div>
   );

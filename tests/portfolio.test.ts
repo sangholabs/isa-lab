@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { RULES_2026 } from "@/lib/tax/rules";
 import { buildHoldings, deposit, placeOrder } from "@/lib/portfolio/engine";
+import { computeMetrics, financialIncomeWarning } from "@/lib/portfolio/metrics";
+import { marketState } from "@/lib/market/marketState";
 import type { Account, Asset, Trade } from "@/lib/portfolio/types";
 
 const R = RULES_2026;
@@ -117,5 +119,61 @@ describe("입금", () => {
     const r = deposit({ account: acct({ type: "isa_general", cashKrw: 0 }), amount: 5_000_000, rules: R, year: 2026 });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.account.contributions[2026]).toBe(5_000_000);
+  });
+});
+
+describe("성과 지표", () => {
+  it("세후 손익은 평가손익 + 실현손익 − 예상세금이다", () => {
+    const buy = placeOrder({ account: acct({ cashKrw: 100_000_000 }), asset: samsung, side: "buy", quantity: 10, price: 200_000, fxKrwPerUsd: null, rules: R }, []);
+    if (!buy.ok) throw new Error("buy failed");
+    const m = computeMetrics({
+      account: buy.account,
+      trades: [buy.trade],
+      assets: new Map([[samsung.id, samsung]]),
+      priceKrw: () => 250_000,
+      realizedKrw: 3_000_000,
+      estimatedTaxKrw: 500_000,
+    });
+    expect(m.valueKrw).toBeCloseTo(2_500_000, 4);
+    expect(m.unrealizedKrw).toBeCloseTo(2_500_000 - 2_000_000 * 1.00015, 4);
+    expect(m.netAfterTaxKrw).toBeCloseTo(m.unrealizedKrw + 3_000_000 - 500_000, 4);
+    expect(m.feesKrw).toBeCloseTo(2_000_000 * 0.00015, 6);
+  });
+
+  it("시세를 못 받은 종목은 합계에서 빠지고 개수로 알려준다", () => {
+    const buy = placeOrder({ account: acct({ cashKrw: 100_000_000 }), asset: samsung, side: "buy", quantity: 10, price: 200_000, fxKrwPerUsd: null, rules: R }, []);
+    if (!buy.ok) throw new Error("buy failed");
+    const m = computeMetrics({
+      account: buy.account,
+      trades: [buy.trade],
+      assets: new Map([[samsung.id, samsung]]),
+      priceKrw: () => null,
+      realizedKrw: 0,
+      estimatedTaxKrw: 0,
+    });
+    expect(m.missingQuotes).toBe(1);
+    expect(m.valueKrw).toBe(0);
+  });
+
+  it("금융소득종합과세 경고는 2,000만원에서 넘어간다", () => {
+    expect(financialIncomeWarning(19_999_999).level).toBe("near");
+    expect(financialIncomeWarning(20_000_000).level).toBe("over");
+    expect(financialIncomeWarning(1_000_000).level).toBe("none");
+  });
+});
+
+describe("장 상태", () => {
+  it("코인은 항상 열려 있다", () => {
+    expect(marketState("crypto").phase).toBe("always_open");
+  });
+
+  it("일요일에는 국내장이 닫혀 있다", () => {
+    const sunday = new Date("2026-09-06T05:00:00Z"); // 일요일 14:00 KST
+    expect(marketState("kr_stock", sunday).phase).toBe("closed");
+  });
+
+  it("평일 장중에는 열려 있다", () => {
+    const wed = new Date("2026-09-02T02:00:00Z"); // 수요일 11:00 KST
+    expect(marketState("kr_stock", wed).phase).toBe("open");
   });
 });
