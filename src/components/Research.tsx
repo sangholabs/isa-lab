@@ -368,7 +368,7 @@ function KeyDialog({
   onClose: () => void;
 }) {
   return (
-    <Modal title="API 키 설정" onClose={onClose} wide>
+    <Modal title="API 키 · 모델 설정" onClose={onClose} wide>
       <div className="mb-4 rounded-lg border border-line bg-panel2 p-3 text-[12px] leading-relaxed text-muted">
         <p>
           키는 <b>이 브라우저에만</b> 저장됩니다. 서버는 요청을 중계만 하고 키를 저장하거나 기록하지 않습니다.
@@ -376,57 +376,118 @@ function KeyDialog({
         <p className="mt-1.5">
           모델 하나만 넣어도 됩니다. 여러 개를 넣으면 서로 다른 시각을 비교할 수 있고, 그만큼 요금이 나갑니다.
         </p>
-        <p className="mt-1.5">
-          공용 PC에서는 쓰지 마세요. 다 쓰고 나면 키 칸을 비우면 지워집니다.
-        </p>
+        <p className="mt-1.5">공용 PC에서는 쓰지 마세요. 키 칸을 비우면 지워집니다.</p>
       </div>
 
       <div className="space-y-3">
-        {PROVIDERS.map((p) => {
-          const e = keys[p.id];
-          return (
-            <div key={p.id} className="rounded-lg border border-line p-3">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-[13px] font-medium">
-                  {p.label}
-                  {p.webSearch && <Badge tone="live">웹 검색</Badge>}
-                </span>
-                <a
-                  href={p.keyUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="text-[11px] text-accent hover:underline"
-                >
-                  키 발급 ↗
-                </a>
-              </div>
-              {p.note && <p className="mb-2 text-[11px] leading-relaxed text-muted">{p.note}</p>}
-              <input
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                placeholder={p.keyHint}
-                value={e?.apiKey ?? ""}
-                onChange={(ev) => onChange(p.id, { apiKey: ev.target.value })}
-                className="w-full rounded-md border border-line bg-panel2 px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
-              />
-              <div className="mt-2 flex items-center gap-2">
-                <label className="text-[11px] text-muted">모델</label>
-                <input
-                  value={e?.model ?? p.defaultModel}
-                  onChange={(ev) => onChange(p.id, { model: ev.target.value })}
-                  className="flex-1 rounded-md border border-line bg-panel2 px-2.5 py-1.5 text-[12px] tabular-nums outline-none focus:border-accent"
-                />
-              </div>
-            </div>
-          );
-        })}
+        {PROVIDERS.map((p) => (
+          <ProviderRow key={p.id} meta={p} entry={keys[p.id]} onChange={onChange} />
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+function ProviderRow({
+  meta,
+  entry,
+  onChange,
+}: {
+  meta: (typeof PROVIDERS)[number];
+  entry: KeyEntry | undefined;
+  onChange: (id: ProviderId, patch: Partial<KeyEntry>) => void;
+}) {
+  const [models, setModels] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const model = entry?.model ?? meta.defaultModel;
+
+  async function load() {
+    setLoading(true);
+    setErr(null);
+    try {
+      const r = await fetch("/api/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: meta.id, apiKey: entry?.apiKey?.trim() ?? "" }),
+      });
+      const d = (await r.json()) as { models?: string[]; error?: string };
+      if (d.error) setErr(d.error);
+      else setModels(d.models ?? []);
+    } catch {
+      setErr("목록을 가져오지 못했습니다");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-line p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="flex items-center gap-2 text-[13px] font-medium">
+          {meta.label}
+          {meta.webSearch && <Badge tone="live">웹 검색</Badge>}
+        </span>
+        <span className="flex gap-2 text-[11px]">
+          <a href={meta.keyUrl} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">
+            키 발급 ↗
+          </a>
+          <a href={meta.pricingUrl} target="_blank" rel="noreferrer noopener" className="text-muted hover:underline">
+            요금표 ↗
+          </a>
+        </span>
       </div>
 
-      <p className="mt-3 text-[11px] leading-relaxed text-muted">
-        모델 이름은 제공사가 자주 바꿉니다. «model not found» 오류가 나면 위 «키 발급» 링크의 공식 문서에서
-        현재 모델 ID를 확인해 바꿔주세요.
-      </p>
-    </Modal>
+      {meta.note && <p className="mb-2 text-[11px] leading-relaxed text-muted">{meta.note}</p>}
+
+      <input
+        type="password"
+        autoComplete="off"
+        spellCheck={false}
+        placeholder={meta.keyHint}
+        value={entry?.apiKey ?? ""}
+        onChange={(ev) => onChange(meta.id, { apiKey: ev.target.value })}
+        className="w-full rounded-md border border-line bg-panel2 px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
+      />
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <label className="text-[11px] text-muted">모델</label>
+        {models && models.length > 0 ? (
+          <select
+            value={models.includes(model) ? model : ""}
+            onChange={(ev) => ev.target.value && onChange(meta.id, { model: ev.target.value })}
+            className="min-w-0 flex-1 rounded-md border border-line bg-panel2 px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
+          >
+            <option value="">{models.includes(model) ? "" : `직접 입력: ${model}`}</option>
+            {models.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            value={model}
+            onChange={(ev) => onChange(meta.id, { model: ev.target.value })}
+            className="min-w-0 flex-1 rounded-md border border-line bg-panel2 px-2.5 py-1.5 text-[12px] tabular-nums outline-none focus:border-accent"
+          />
+        )}
+        <button
+          onClick={load}
+          disabled={loading || (meta.listable && !entry?.apiKey)}
+          className="shrink-0 rounded-md border border-line px-2 py-1.5 text-[11px] text-muted transition hover:border-accent hover:text-accent disabled:opacity-30"
+        >
+          {loading ? "불러오는 중…" : models ? "다시 불러오기" : "모델 목록"}
+        </button>
+      </div>
+
+      {models && (
+        <p className="mt-1 text-[11px] text-muted">
+          {models.length}개 {meta.listable ? "· 계정에서 쓸 수 있는 모델입니다" : "· 코드에 든 후보입니다"}
+          {!models.includes(model) && " · 지금 값은 목록에 없어 직접 입력으로 유지됩니다"}
+        </p>
+      )}
+      {err && <p className="mt-1 text-[11px] text-up">{err}</p>}
+    </div>
   );
 }

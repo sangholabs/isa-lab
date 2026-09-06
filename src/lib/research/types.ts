@@ -5,11 +5,15 @@ export interface ProviderMeta {
   label: string;
   /** 키 발급 페이지 */
   keyUrl: string;
+  /** 가격표 — 모델마다 요금이 달라서, 고르기 전에 여기서 확인한다 */
+  pricingUrl: string;
   /** 키 형태 힌트 — 붙여넣기 전에 맞는 키인지 알아볼 수 있게 */
   keyHint: string;
   defaultModel: string;
   /** 모델이 스스로 웹을 찾아볼 수 있는지 */
   webSearch: boolean;
+  /** 모델 목록을 API로 받아올 수 있는지. 없으면 코드에 든 후보를 쓴다 */
+  listable: boolean;
   note: string;
 }
 
@@ -18,37 +22,45 @@ export const PROVIDERS: ProviderMeta[] = [
     id: "perplexity",
     label: "Perplexity",
     keyUrl: "https://www.perplexity.ai/settings/api",
+    pricingUrl: "https://docs.perplexity.ai/getting-started/pricing",
     keyHint: "pplx-…",
     defaultModel: "sonar-reasoning-pro",
     webSearch: true,
+    listable: false,
     note: "최신 뉴스·시세를 직접 검색해 출처와 함께 답합니다. 넷 중 하나만 쓴다면 이걸 권합니다.",
   },
   {
     id: "gemini",
     label: "Google Gemini",
     keyUrl: "https://aistudio.google.com/app/apikey",
+    pricingUrl: "https://ai.google.dev/gemini-api/docs/pricing",
     keyHint: "AIza…",
     defaultModel: "gemini-3-pro",
     webSearch: false,
-    note: "무료 한도가 넉넉해서 가볍게 시작하기 좋습니다.",
+    listable: true,
+    note: "무료 한도가 넉넉해서 가볍게 시작하기 좋습니다. flash가 pro보다 싸고 빠릅니다.",
   },
   {
     id: "openai",
     label: "OpenAI",
     keyUrl: "https://platform.openai.com/api-keys",
+    pricingUrl: "https://platform.openai.com/docs/pricing",
     keyHint: "sk-…",
     defaultModel: "gpt-5.4",
     webSearch: false,
-    note: "",
+    listable: true,
+    note: "이름에 mini·nano가 붙은 모델이 더 싸고 빠릅니다.",
   },
   {
     id: "anthropic",
     label: "Anthropic Claude",
     keyUrl: "https://console.anthropic.com/settings/keys",
+    pricingUrl: "https://www.anthropic.com/pricing#api",
     keyHint: "sk-ant-…",
     defaultModel: "claude-opus-5",
     webSearch: false,
-    note: "",
+    listable: true,
+    note: "haiku가 가장 싸고, sonnet이 중간, opus가 가장 비쌉니다.",
   },
 ];
 

@@ -6,7 +6,7 @@ import { num, won } from "@/lib/format";
 import { KIND_LABEL, KIND_TAX_HINT } from "@/lib/universe";
 import { computeTradeCost } from "@/lib/tax/engine";
 import type { TaxRuleSet } from "@/lib/tax/rules";
-import type { Asset, Holding } from "@/lib/portfolio/types";
+import type { Asset, FeeSettings, Holding } from "@/lib/portfolio/types";
 
 export interface OrderIntent {
   asset: Asset;
@@ -21,6 +21,7 @@ export function OrderDialog({
   cashKrw,
   holding,
   rules,
+  fees,
   onClose,
   onSubmit,
 }: {
@@ -31,6 +32,7 @@ export function OrderDialog({
   cashKrw: number;
   holding: Holding | null;
   rules: TaxRuleSet;
+  fees: FeeSettings;
   onClose: () => void;
   onSubmit: (quantity: number) => void;
 }) {
@@ -61,9 +63,10 @@ export function OrderDialog({
         side,
         notional: notionalKrw,
         krMarket: asset.krMarket,
+        fees,
         rules,
       }),
-    [asset.kind, asset.krMarket, side, notionalKrw, rules],
+    [asset.kind, asset.krMarket, side, notionalKrw, rules, fees],
   );
 
   const needKrw = side === "buy" ? notionalKrw + cost.total : 0;
@@ -71,9 +74,17 @@ export function OrderDialog({
   const maxQty =
     side === "buy"
       ? priceKrw && priceKrw > 0
-        ? isCrypto
-          ? Math.floor((cashKrw / (priceKrw * 1.001)) / step) * step
-          : Math.floor(cashKrw / (priceKrw * 1.001))
+        ? (() => {
+            const load =
+              1 +
+              (isCrypto
+                ? fees.cryptoFeeRate
+                : asset.kind === "overseas_stock"
+                  ? fees.overseasBrokerFeeRate + fees.fxSpreadRate
+                  : fees.krBrokerFeeRate);
+            const raw = cashKrw / (priceKrw * load);
+            return isCrypto ? Math.floor(raw / step) * step : Math.floor(raw);
+          })()
         : 0
       : (holding?.quantity ?? 0);
 

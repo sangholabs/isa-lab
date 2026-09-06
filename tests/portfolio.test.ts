@@ -3,6 +3,7 @@ import { RULES_2026 } from "@/lib/tax/rules";
 import { buildHoldings, deposit, placeOrder } from "@/lib/portfolio/engine";
 import { computeMetrics, financialIncomeWarning } from "@/lib/portfolio/metrics";
 import { marketState } from "@/lib/market/marketState";
+import { parseTickerFrame } from "@/lib/market/useUpbitStream";
 import type { Account, Asset, Trade } from "@/lib/portfolio/types";
 
 const R = RULES_2026;
@@ -175,5 +176,36 @@ describe("장 상태", () => {
   it("평일 장중에는 열려 있다", () => {
     const wed = new Date("2026-09-02T02:00:00Z"); // 수요일 11:00 KST
     expect(marketState("kr_stock", wed).phase).toBe("open");
+  });
+});
+
+describe("업비트 실시간 프레임 파싱", () => {
+  const frame = JSON.stringify({
+    type: "ticker",
+    code: "KRW-BTC",
+    trade_price: 108_961_000,
+    prev_closing_price: 108_998_000,
+    signed_change_rate: -0.00033945,
+    trade_timestamp: 1788698560442,
+  });
+
+  it("체결가와 등락률을 뽑는다", () => {
+    const t = parseTickerFrame(frame)!;
+    expect(t.market).toBe("KRW-BTC");
+    expect(t.price).toBe(108_961_000);
+    expect(t.changePercent).toBeCloseTo(-0.033945, 6);
+    expect(t.at).toBe(1788698560442);
+  });
+
+  it("깨진 프레임은 null을 준다 — 스트림을 끊지 않는다", () => {
+    expect(parseTickerFrame("not json")).toBeNull();
+    expect(parseTickerFrame(JSON.stringify({ type: "ticker" }))).toBeNull();
+    expect(parseTickerFrame(JSON.stringify({ code: "KRW-BTC" }))).toBeNull();
+  });
+
+  it("prev_closing_price가 없으면 현재가로 채운다", () => {
+    const t = parseTickerFrame(JSON.stringify({ code: "KRW-ETH", trade_price: 3_409_000 }))!;
+    expect(t.previousClose).toBe(3_409_000);
+    expect(t.changePercent).toBe(0);
   });
 });

@@ -22,6 +22,22 @@ export interface Sourced<T> {
 const enacted = <T>(value: T, note: string): Sourced<T> => ({ value, status: "enacted", note });
 const proposed = <T>(value: T, note: string): Sourced<T> => ({ value, status: "proposed", note });
 
+/**
+ * 세율을 API로 받아올 방법은 없다. 국가법령정보 OPEN API는 법령 "본문"만 주고,
+ * 별표·부칙·특례가 얽혀 있어 자동 파싱은 조용히 틀린다. 그래서 사람이 확인해
+ * 여기 적고, 언제 무엇을 보고 적었는지를 함께 남긴다.
+ */
+export const VERIFIED_AT = "2026-09-06";
+
+export const SOURCES: { label: string; url: string }[] = [
+  { label: "2026년 증권거래세율 인상 (코스피 0.20% · 코스닥 0.20%)", url: "https://www.ds-sec.co.kr/bbs/board.php?bo_table=sub06_10&wr_id=779" },
+  { label: "ETF 유형별 과세 (국내주식형 비과세 / 기타 ETF 15.4%)", url: "https://kbthink.com/etf/etf-tax.html" },
+  { label: "해외주식 양도소득세 250만원 공제 · 22%", url: "https://wealthmoa.com/korea-stock-tax-2026/" },
+  { label: "가상자산 과세 2027년 시행", url: "https://kbthink.com/crypto/crypto-tax.html" },
+  { label: "국가법령정보 공동활용 (법령 원문 확인용)", url: "https://open.law.go.kr/LSO/openApi/guideList.do" },
+  { label: "국세법령정보시스템", url: "https://taxlaw.nts.go.kr/" },
+];
+
 /** 국내 상장시장 구분 — 매도 시 거래세율이 다르다 */
 export type KrMarket = "KOSPI" | "KOSDAQ" | "KONEX";
 

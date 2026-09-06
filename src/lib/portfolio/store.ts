@@ -1,5 +1,6 @@
 import type { PortfolioState } from "./types";
 import { DEFAULT_RULE_SET_ID } from "@/lib/tax/rules";
+import { DEFAULT_FEES } from "@/lib/tax/engine";
 import { DEFAULT_WATCHLIST } from "@/lib/universe";
 
 const KEY = "isa-lab:state:v1";
@@ -9,6 +10,7 @@ export function initialState(): PortfolioState {
   return {
     version: 1,
     ruleSetId: DEFAULT_RULE_SET_ID,
+    fees: { ...DEFAULT_FEES },
     watchlist: [...DEFAULT_WATCHLIST],
     accounts: [
       { id: "regular", name: "일반 위탁계좌", type: "regular", cashKrw: 10_000_000, openedAt, contributions: {} },
@@ -42,7 +44,8 @@ export const localStore: PortfolioStore = {
       const parsed = JSON.parse(raw) as PortfolioState;
       // 스키마가 바뀌면 조용히 깨지는 대신 초기화한다
       if (parsed.version !== 1 || !Array.isArray(parsed.accounts)) return initialState();
-      return parsed;
+      // 예전에 저장된 상태에는 fees가 없다 — 기본값으로 채워 넣는다
+      return { ...parsed, fees: { ...DEFAULT_FEES, ...(parsed.fees ?? {}) } };
     } catch {
       return initialState();
     }

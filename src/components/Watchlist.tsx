@@ -4,6 +4,7 @@ import { Badge, Empty, Panel } from "./ui";
 import { num, pct, signColor, won } from "@/lib/format";
 import { KIND_LABEL, KIND_TAX_HINT, UNIVERSE } from "@/lib/universe";
 import { marketState, sinceLabel } from "@/lib/market/marketState";
+import type { StreamStatus } from "@/lib/market/useUpbitStream";
 import type { Quote } from "@/lib/market/types";
 import type { Asset, Holding } from "@/lib/portfolio/types";
 
@@ -20,6 +21,7 @@ export function Watchlist({
   rows,
   watchlist,
   hasTrades,
+  streamStatus,
   onAdd,
   onRemove,
   onOrder,
@@ -27,6 +29,7 @@ export function Watchlist({
   rows: Row[];
   watchlist: string[];
   hasTrades: boolean;
+  streamStatus: StreamStatus;
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
   onOrder: (asset: Asset, side: "buy" | "sell") => void;
@@ -53,14 +56,23 @@ export function Watchlist({
               </optgroup>
             ))}
           </select>
-          <span className="text-[11px] text-muted">20초마다 자동 갱신</span>
+          <span className="text-[11px] text-muted">
+            주식 20초 갱신
+            {streamStatus === "live"
+              ? " · 코인 실시간"
+              : streamStatus === "retrying"
+                ? " · 코인 재연결 중"
+                : streamStatus === "connecting"
+                  ? " · 코인 연결 중"
+                  : ""}
+          </span>
         </div>
       }
     >
       {/* 모바일: 카드. 표를 가로로 밀어보게 만들면 대부분 안 봅니다. */}
       <div className="space-y-2 sm:hidden">
         {rows.map((r) => (
-          <Card key={r.asset.id} row={r} onRemove={onRemove} onOrder={onOrder} />
+          <Card key={r.asset.id} row={r} onRemove={onRemove} onOrder={onOrder} streamStatus={streamStatus} />
         ))}
       </div>
 
@@ -82,7 +94,7 @@ export function Watchlist({
               return (
                 <tr key={a.id} className="border-b border-line/50">
                   <td className="py-2 pr-2">
-                    <NameCell row={r} onRemove={onRemove} />
+                    <NameCell row={r} onRemove={onRemove} streamStatus={streamStatus} />
                   </td>
                   <td className="py-2 text-right tabular-nums">
                     {q ? (a.currency === "USD" ? `$${num(q.price, 2)}` : won(q.price)) : "—"}
@@ -133,9 +145,18 @@ export function Watchlist({
   );
 }
 
-function NameCell({ row, onRemove }: { row: Row; onRemove: (id: string) => void }) {
+function NameCell({
+  row,
+  onRemove,
+  streamStatus,
+}: {
+  row: Row;
+  onRemove: (id: string) => void;
+  streamStatus: StreamStatus;
+}) {
   const { asset: a, quote: q, holding: h } = row;
   const ms = marketState(a.kind);
+  const liveCrypto = a.kind === "crypto" && streamStatus === "live";
   return (
     <>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -143,8 +164,23 @@ function NameCell({ row, onRemove }: { row: Row; onRemove: (id: string) => void 
         <Badge tone={a.kind === "kr_etf_other" ? "accent" : "neutral"} title={KIND_TAX_HINT[a.kind]}>
           {KIND_LABEL[a.kind]}
         </Badge>
-        <Badge tone={ms.phase === "closed" ? "neutral" : "live"} title={ms.hint}>
-          {ms.phase === "closed" ? "종가" : ms.phase === "always_open" ? "실시간" : "장중"}
+        <Badge
+          tone={ms.phase === "closed" ? "neutral" : "live"}
+          title={
+            a.kind === "crypto"
+              ? liveCrypto
+                ? "업비트 WebSocket 실시간 체결가"
+                : "실시간 연결이 안 돼 20초마다 REST로 받고 있습니다"
+              : ms.hint
+          }
+        >
+          {ms.phase === "closed"
+            ? "종가"
+            : liveCrypto
+              ? "실시간"
+              : ms.phase === "always_open"
+                ? "20초 갱신"
+                : "장중"}
         </Badge>
         {q?.stale && <Badge tone="warn">지연</Badge>}
         {!h && (
@@ -190,15 +226,17 @@ function Card({
   row,
   onRemove,
   onOrder,
+  streamStatus,
 }: {
   row: Row;
   onRemove: (id: string) => void;
   onOrder: (a: Asset, s: "buy" | "sell") => void;
+  streamStatus: StreamStatus;
 }) {
   const { asset: a, quote: q, priceKrw: p, holding: h } = row;
   return (
     <div className="rounded-lg border border-line bg-panel2 p-3">
-      <NameCell row={row} onRemove={onRemove} />
+      <NameCell row={row} onRemove={onRemove} streamStatus={streamStatus} />
 
       <div className="mt-2 flex items-end justify-between gap-2">
         <div>

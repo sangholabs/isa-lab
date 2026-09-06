@@ -8,6 +8,7 @@ import { TradeHistory } from "@/components/TradeHistory";
 import { Watchlist, type Row } from "@/components/Watchlist";
 import { Research } from "@/components/Research";
 import { GettingStarted } from "@/components/GettingStarted";
+import { Settings } from "@/components/Settings";
 import { num, pct, signColor, won } from "@/lib/format";
 import { ASSET_MAP, KIND_LABEL, KIND_TAX_HINT, UNIVERSE } from "@/lib/universe";
 import { annualTaxForAccount, buildHoldings, deposit, placeOrder } from "@/lib/portfolio/engine";
@@ -17,6 +18,7 @@ import { demoState } from "@/lib/demo";
 import type { PortfolioState } from "@/lib/portfolio/types";
 import type { Quote, QuoteResult } from "@/lib/market/types";
 import { marketState, sinceLabel } from "@/lib/market/marketState";
+import { useUpbitStream } from "@/lib/market/useUpbitStream";
 import { DISCLAIMER, RULE_SETS, getRuleSet } from "@/lib/tax/rules";
 import { checkContribution, holdingStatus } from "@/lib/tax/isa";
 import { compareIsa } from "@/lib/tax/engine";
@@ -44,6 +46,7 @@ export default function Page() {
   const [toast, setToast] = useState<{ text: string; bad?: boolean } | null>(null);
   const [loadingQuotes, setLoadingQuotes] = useState(false);
   const [order, setOrder] = useState<OrderIntent | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     store.load().then(setState);
@@ -67,6 +70,16 @@ export default function Page() {
     const held = new Set(state.trades.map((t) => t.assetId));
     return [...new Set([...state.watchlist, ...held])];
   }, [state]);
+
+  const cryptoMarkets = useMemo(
+    () =>
+      trackedIds
+        .map((id) => ASSET_MAP.get(id))
+        .filter((a) => a?.kind === "crypto")
+        .map((a) => a!.symbol),
+    [trackedIds],
+  );
+  const { ticks, status: streamStatus } = useUpbitStream(cryptoMarkets);
 
   const refresh = useCallback(async () => {
     if (trackedIds.length === 0) return;
@@ -94,14 +107,39 @@ export default function Page() {
     return () => clearInterval(id);
   }, [refresh]);
 
+  /**
+   * REST로 받은 시세 위에 WebSocket 틱을 덮는다.
+   * 코인만 실시간이고 주식은 그대로 — 그 차이를 화면 배지로도 구분해 보여준다.
+   */
+  const liveQuotes = useMemo(() => {
+    if (ticks.size === 0) return quotes;
+    const merged = new Map(quotes);
+    for (const [market, t] of ticks) {
+      const id = `upbit:${market}`;
+      const base = merged.get(id);
+      merged.set(id, {
+        instrumentId: id,
+        price: t.price,
+        currency: "KRW",
+        previousClose: t.previousClose,
+        changePercent: t.changePercent,
+        source: "upbit",
+        asOf: new Date(t.at).toISOString(),
+        stale: false,
+        ...(base ? {} : {}),
+      });
+    }
+    return merged;
+  }, [quotes, ticks]);
+
   const priceKrw = useCallback(
     (assetId: string): number | null => {
-      const q = quotes.get(assetId);
+      const q = liveQuotes.get(assetId);
       if (!q) return null;
       if (q.currency === "KRW") return q.price;
       return fx.rate == null ? null : q.price * fx.rate;
     },
-    [quotes, fx.rate],
+    [liveQuotes, fx.rate],
   );
 
   if (!state || !account) {
@@ -155,7 +193,7 @@ export default function Page() {
 
   function submitOrder(quantity: number) {
     if (!order || !account || !state) return;
-    const q = quotes.get(order.asset.id);
+    const q = liveQuotes.get(order.asset.id);
     if (!q) return setToast({ text: "시세를 아직 못 받았습니다.", bad: true });
 
     const res = placeOrder(
@@ -167,6 +205,7 @@ export default function Page() {
         price: q.price,
         fxKrwPerUsd: fx.rate,
         rules,
+        fees: state.fees,
       },
       state.trades,
     );
@@ -202,7 +241,7 @@ export default function Page() {
   const watchRows: Row[] = UNIVERSE.filter(
     (a) => state.watchlist.includes(a.id) || holdings.has(a.id),
   ).map((a) => {
-    const q = quotes.get(a.id);
+    const q = liveQuotes.get(a.id);
     const p = priceKrw(a.id);
     const h = holdings.get(a.id);
     const cost = h ? h.avgCostKrw * h.quantity : 0;
@@ -256,6 +295,12 @@ export default function Page() {
             }}
           />
           <button
+            onClick={() => setShowSettings(true)}
+            className="rounded-lg border border-line bg-panel px-2.5 py-1.5 text-[12px] text-muted hover:bg-panel2"
+          >
+            수수료·세율
+          </button>
+          <button
             onClick={() => void refresh()}
             className="rounded-lg border border-line bg-panel px-2.5 py-1.5 text-[12px] hover:bg-panel2"
           >
@@ -283,7 +328,7 @@ export default function Page() {
       {tab === "start" && <GettingStarted />}
 
       {tab === "research" && (
-        <Research quotes={quotes} priceKrw={priceKrw} holdings={holdings} />
+        <Research quotes={liveQuotes} priceKrw={priceKrw} holdings={holdings} />
       )}
 
       {tab === "history" && (
@@ -443,6 +488,7 @@ export default function Page() {
             rows={watchRows}
             watchlist={state.watchlist}
             hasTrades={state.trades.length > 0}
+            streamStatus={streamStatus}
             onAdd={(id) =>
               setState((s2) => (s2 ? { ...s2, watchlist: [...new Set([...s2.watchlist, id])] } : s2))
             }
@@ -481,15 +527,25 @@ export default function Page() {
         </p>
       </footer>
 
+      {showSettings && (
+        <Settings
+          fees={state.fees}
+          rules={rules}
+          onChangeFees={(f) => setState((s2) => (s2 ? { ...s2, fees: f } : s2))}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
       {order && (
         <OrderDialog
           intent={order}
           priceKrw={priceKrw(order.asset.id)}
-          displayPrice={quotes.get(order.asset.id)?.price ?? null}
+          displayPrice={liveQuotes.get(order.asset.id)?.price ?? null}
           currency={order.asset.currency}
           cashKrw={account.cashKrw}
           holding={holdings.get(order.asset.id) ?? null}
           rules={rules}
+          fees={state.fees}
           onClose={() => setOrder(null)}
           onSubmit={submitOrder}
         />

@@ -46,10 +46,19 @@ export interface Holding {
   avgCostKrw: number;
 }
 
+export interface FeeSettings {
+  krBrokerFeeRate: number;
+  overseasBrokerFeeRate: number;
+  fxSpreadRate: number;
+  cryptoFeeRate: number;
+}
+
 export interface PortfolioState {
   accounts: Account[];
   trades: Trade[];
   watchlist: string[];
   ruleSetId: string;
+  /** 수수료는 증권사·거래소·개인 등급마다 달라서 공식 API로 받아올 수 없다. 직접 설정한다. */
+  fees: FeeSettings;
   version: 1;
 }
