@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { RULES_2026, RULES_2026_ISA_REFORM, proposedItems } from "@/lib/tax/rules";
 import { computeAnnualTax, compareIsa, computeTradeCost, DEFAULT_FEES } from "@/lib/tax/engine";
 import { checkContribution, checkIsaEligibility, holdingStatus } from "@/lib/tax/isa";
+import { buildConsensus, scoreAnalysis } from "@/lib/research/score";
+import { buildScenario } from "@/lib/research/scenario";
 
 const R = RULES_2026;
 
@@ -226,5 +228,127 @@ describe("ISA 비교에서 담을 수 없는 자산 제외", () => {
     // 해외주식·코인이 빠졌으므로 ETF 500만원만 놓고 계산된다
     expect(c.regular.totalTax).toBeCloseTo(5_000_000 * 0.154, 6);
     expect(c.isa.totalTax).toBeCloseTo((5_000_000 - 2_000_000) * 0.099, 6);
+  });
+});
+
+describe("리서치 신뢰도 점수", () => {
+  const base = {
+    summary: "요약",
+    bull: [{ point: "a", evidence: "출처 있는 근거입니다" }, { point: "b", evidence: "또 다른 근거입니다" }],
+    bear: [{ point: "c", evidence: "반대 근거입니다" }, { point: "d", evidence: "또 다른 반대 근거" }],
+    scenarios: [],
+    watchItems: [],
+    unknowns: ["확인 못 한 것 1", "확인 못 한 것 2"],
+    confidence: 70,
+    sources: ["https://example.com/a", "https://example.com/b", "https://example.com/c"],
+  };
+
+  it("근거·출처·균형이 다 갖춰지면 높게 나온다", () => {
+    const s = scoreAnalysis(base);
+    expect(s.total).toBeGreaterThanOrEqual(70);
+    expect(s.grade).toBe("높음");
+    expect(s.caution).toBeNull();
+  });
+
+  it("출처가 없으면 감점하고 경고한다", () => {
+    const s = scoreAnalysis({ ...base, sources: [] });
+    expect(s.items.find((i) => i.key === "sources")!.earned).toBe(0);
+    expect(s.caution).toContain("출처가 하나도 없습니다");
+  });
+
+  it("한쪽 논거만 있으면 균형 점수가 0이고 경고한다", () => {
+    const s = scoreAnalysis({ ...base, bear: [] });
+    expect(s.items.find((i) => i.key === "balance")!.earned).toBe(0);
+    expect(s.caution).toContain("한쪽 논거만");
+  });
+
+  it("근거 없는 주장만 있으면 근거 점수가 0이다", () => {
+    const s = scoreAnalysis({
+      ...base,
+      bull: [{ point: "a", evidence: "" }],
+      bear: [{ point: "b", evidence: "" }],
+    });
+    expect(s.items.find((i) => i.key === "evidence")!.earned).toBe(0);
+  });
+
+  it("모델이 하나면 합의를 말하지 않는다", () => {
+    const c = buildConsensus(
+      [{ provider: "perplexity", model: "m", ok: true, analysis: base, elapsedMs: 1 }],
+      () => "Perplexity",
+    );
+    expect(c.agreement).toBeNull();
+    expect(c.summary).toContain("교차 검증");
+  });
+
+  it("방향이 갈리면 갈렸다고 말한다", () => {
+    const bull = { ...base, bull: [...base.bull, { point: "e", evidence: "f" }, { point: "g", evidence: "h" }], bear: [] };
+    const bear = { ...base, bull: [], bear: [...base.bear, { point: "e", evidence: "f" }, { point: "g", evidence: "h" }] };
+    const c = buildConsensus(
+      [
+        { provider: "perplexity", model: "m", ok: true, analysis: bull, elapsedMs: 1 },
+        { provider: "gemini", model: "m", ok: true, analysis: bear, elapsedMs: 1 },
+      ],
+      (id) => id,
+    );
+    expect(c.bullish).toBe(1);
+    expect(c.bearish).toBe(1);
+    expect(c.summary).toContain("갈렸다는 건");
+  });
+});
+
+describe("세후 시나리오", () => {
+  it("국내상장 해외ETF는 오를수록 ISA 절세액이 커진다", () => {
+    const sc = buildScenario({
+      kind: "kr_etf_other",
+      investKrw: 10_000_000,
+      rules: R,
+      fees: DEFAULT_FEES,
+      year: 2026,
+    });
+    const up10 = sc.rows.find((r) => r.changePct === 10)!;
+    const up30 = sc.rows.find((r) => r.changePct === 30)!;
+    expect(up10.savedKrw!).toBeGreaterThan(0);
+    expect(up30.savedKrw!).toBeGreaterThan(up10.savedKrw!);
+    expect(up30.isaNetKrw!).toBeGreaterThan(up30.regularNetKrw);
+  });
+
+  it("해외주식은 ISA에 못 담으므로 ISA 열이 비어 있다", () => {
+    const sc = buildScenario({
+      kind: "overseas_stock",
+      investKrw: 10_000_000,
+      rules: R,
+      fees: DEFAULT_FEES,
+      year: 2026,
+    });
+    expect(sc.isaEligible).toBe(false);
+    expect(sc.rows.every((r) => r.isaNetKrw === null)).toBe(true);
+  });
+
+  it("국내주식은 매매차익이 비과세라 세금이 0이다", () => {
+    const sc = buildScenario({
+      kind: "kr_stock",
+      krMarket: "KOSPI",
+      investKrw: 10_000_000,
+      rules: R,
+      fees: DEFAULT_FEES,
+      year: 2026,
+    });
+    expect(sc.rows.every((r) => r.regularTaxKrw === 0)).toBe(true);
+    // 대신 매도 거래세가 세전 손익에서 이미 빠져 있다
+    const up10 = sc.rows.find((r) => r.changePct === 10)!;
+    expect(up10.grossKrw).toBeLessThan(1_000_000);
+  });
+
+  it("떨어지면 세금이 붙지 않는다", () => {
+    const sc = buildScenario({
+      kind: "kr_etf_other",
+      investKrw: 10_000_000,
+      rules: R,
+      fees: DEFAULT_FEES,
+      year: 2026,
+    });
+    const down = sc.rows.find((r) => r.changePct === -20)!;
+    expect(down.grossKrw).toBeLessThan(0);
+    expect(down.regularTaxKrw).toBe(0);
   });
 });

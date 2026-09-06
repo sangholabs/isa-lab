@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Badge, Empty, Modal, Panel } from "./ui";
+import { ResearchVerdict } from "./ResearchVerdict";
 import { num, won } from "@/lib/format";
 import { KIND_LABEL, UNIVERSE } from "@/lib/universe";
+import type { TaxRuleSet } from "@/lib/tax/rules";
+import type { AssetKind } from "@/lib/tax/types";
+import type { FeeSettings } from "@/lib/portfolio/types";
 import {
   PROVIDERS,
   PROVIDER_MAP,
@@ -45,10 +49,16 @@ export function Research({
   quotes,
   priceKrw,
   holdings,
+  rules,
+  fees,
+  existingRealized,
 }: {
   quotes: Map<string, Quote>;
   priceKrw: (assetId: string) => number | null;
   holdings: Map<string, Holding>;
+  rules: TaxRuleSet;
+  fees: FeeSettings;
+  existingRealized: { kind: AssetKind; amount: number }[];
 }) {
   const [keys, setKeys] = useState<KeyStore>({});
   const [showKeys, setShowKeys] = useState(false);
@@ -162,7 +172,19 @@ export function Research({
         )}
       </Panel>
 
-      {res && <Results res={res} />}
+      {res && (
+        <>
+          <ResearchVerdict
+            res={res}
+            kind={asset.kind}
+            krMarket={asset.krMarket}
+            rules={rules}
+            fees={fees}
+            existingRealized={existingRealized}
+          />
+          <Results res={res} />
+        </>
+      )}
 
       {!res && !loading && active.length > 0 && (
         <Panel>

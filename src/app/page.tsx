@@ -328,7 +328,14 @@ export default function Page() {
       {tab === "start" && <GettingStarted />}
 
       {tab === "research" && (
-        <Research quotes={liveQuotes} priceKrw={priceKrw} holdings={holdings} />
+        <Research
+          quotes={liveQuotes}
+          priceKrw={priceKrw}
+          holdings={holdings}
+          rules={rules}
+          fees={state.fees}
+          existingRealized={realizedRows}
+        />
       )}
 
       {tab === "history" && (

@@ -39,10 +39,10 @@ export const PROVIDERS: ProviderMeta[] = [
     keyUrl: "https://aistudio.google.com/app/apikey",
     pricingUrl: "https://ai.google.dev/gemini-api/docs/pricing",
     keyHint: "AIza…",
-    defaultModel: "gemini-3-pro",
+    defaultModel: "gemini-3.8-flash",
     webSearch: false,
     listable: true,
-    note: "무료 한도가 넉넉해서 가볍게 시작하기 좋습니다. flash가 pro보다 싸고 빠릅니다.",
+    note: "무료 한도가 넉넉해서 가볍게 시작하기 좋습니다. flash가 pro보다 싸고 빠릅니다. 더 깊게 보려면 pro 계열로 바꾸세요.",
   },
   {
     id: "openai",
@@ -50,10 +50,10 @@ export const PROVIDERS: ProviderMeta[] = [
     keyUrl: "https://platform.openai.com/api-keys",
     pricingUrl: "https://platform.openai.com/docs/pricing",
     keyHint: "sk-…",
-    defaultModel: "gpt-5.4",
+    defaultModel: "gpt-5.6",
     webSearch: false,
     listable: true,
-    note: "이름에 mini·nano가 붙은 모델이 더 싸고 빠릅니다.",
+    note: "「모델 목록」을 누르면 계정에서 쓸 수 있는 모델이 그대로 나옵니다.",
   },
   {
     id: "anthropic",
@@ -65,6 +65,7 @@ export const PROVIDERS: ProviderMeta[] = [
     webSearch: false,
     listable: true,
     note: "haiku가 가장 싸고, sonnet이 중간, opus가 가장 비쌉니다.",
+    warning: undefined,
   },
 ];
 
@@ -109,6 +110,9 @@ export interface ResearchResponse {
   disagreements: string[];
   requestedAt: string;
 }
+
+/** 기본 모델 ID를 마지막으로 공식 문서에서 확인한 날 */
+export const MODELS_VERIFIED_AT = "2026-09-06";
 
 export const RESEARCH_DISCLAIMER =
   "이 결과는 사용자가 넣은 API 키로 외부 LLM을 호출해 받은 것입니다. 사실 확인이 되지 않은 내용이 섞일 수 있고, 투자자문이 아닙니다. 매수·매도 판단과 그 결과는 전적으로 본인 책임입니다.";
