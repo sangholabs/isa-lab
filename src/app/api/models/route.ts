@@ -11,11 +11,11 @@ export const dynamic = "force-dynamic";
  * 그래서 사용자 키로 제공사에 직접 물어본다. 여기서도 키는 저장하지 않는다.
  * Perplexity는 목록 API가 없어 코드에 든 후보를 그대로 돌려준다.
  */
+// 2026-09-06 공식 문서 확인. sonar-reasoning은 폐기됐다.
 const PERPLEXITY_MODELS = [
-  "sonar",
-  "sonar-pro",
-  "sonar-reasoning",
   "sonar-reasoning-pro",
+  "sonar-pro",
+  "sonar",
   "sonar-deep-research",
 ];
 

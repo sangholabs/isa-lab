@@ -15,6 +15,8 @@ export interface ProviderMeta {
   /** 모델 목록을 API로 받아올 수 있는지. 없으면 코드에 든 후보를 쓴다 */
   listable: boolean;
   note: string;
+  /** 지금 알고 있는 주의사항 — 폐기 예정 같은 것 */
+  warning?: string;
 }
 
 export const PROVIDERS: ProviderMeta[] = [
@@ -28,6 +30,8 @@ export const PROVIDERS: ProviderMeta[] = [
     webSearch: true,
     listable: false,
     note: "최신 뉴스·시세를 직접 검색해 출처와 함께 답합니다. 넷 중 하나만 쓴다면 이걸 권합니다.",
+    warning:
+      "목록 API가 없어 코드에 적힌 후보입니다 (2026-09-06 확인). Perplexity는 chat/completions를 Agent API로 옮기는 중이라 모델 이름이 바뀔 수 있습니다 — 오류가 나면 공식 문서에서 확인해 직접 입력하세요.",
   },
   {
     id: "gemini",

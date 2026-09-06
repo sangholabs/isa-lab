@@ -439,6 +439,11 @@ function ProviderRow({
       </div>
 
       {meta.note && <p className="mb-2 text-[11px] leading-relaxed text-muted">{meta.note}</p>}
+      {meta.warning && (
+        <p className="mb-2 rounded-md border border-warn/40 bg-warn/10 px-2 py-1.5 text-[11px] leading-relaxed text-warn">
+          {meta.warning}
+        </p>
+      )}
 
       <input
         type="password"
