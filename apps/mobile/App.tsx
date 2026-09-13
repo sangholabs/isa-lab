@@ -184,8 +184,8 @@ export default function App() {
 }
 
 function AmountField({ label, name, value, onChange }: { label: string; name: string; value: string; onChange: (v: string) => void }) {
-  // 숫자와 소수점 하나만 받는다. "1.2.3"을 통과시키면 0으로 계산돼 조용히 빠진다
-  const accept = (t: string) => { const v = t.replace(/[^\d.]/g, ""); if (/^\d*\.?\d*$/.test(v)) onChange(v); };
+  // 숫자와 소수점 하나만 받는다. "1.2.3"을 통과시키면 0으로 계산돼 조용히 빠진다. 쉼표를 소수점으로 쓰는 지역 키보드는 쉼표 키만 있다
+  const accept = (t: string) => { const v = t.replace(/,/g, ".").replace(/[^\d.]/g, ""); if (/^\d*\.?\d*$/.test(v)) onChange(v); };
   return (
     <View style={s.field}>
       <Text style={s.fieldLabel}>{label}</Text>

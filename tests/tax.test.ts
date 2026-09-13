@@ -267,6 +267,14 @@ describe("의무보유기간", () => {
     expect(s.monthsLeft).toBe(0);
   });
 
+  it("3년이 되는 날 전날까지는 미충족 — 개월 수가 아니라 날짜로 센다 (조특법 제91조의18)", () => {
+    const opened = new Date("2023-01-31");
+    const before = holdingStatus({ rules: R, openedAt: opened, now: new Date("2026-01-30") });
+    expect(before.satisfied).toBe(false);
+    expect(before.monthsLeft).toBe(1);
+    expect(holdingStatus({ rules: R, openedAt: opened, now: new Date("2026-01-31") }).satisfied).toBe(true);
+  });
+
   it("아직이면 남은 개월 수를 알려준다", () => {
     const s = holdingStatus({ rules: R, openedAt: new Date("2025-01-01"), now: new Date("2026-01-01") });
     expect(s.satisfied).toBe(false);
