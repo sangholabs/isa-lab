@@ -14,7 +14,7 @@
 ## Ponytail — 코드 쓰기 전 7단
 1. 이거 진짜 필요해? → 2. 이미 있어?(엔진·웹 컴포넌트) → 3. 표준 라이브러리/RN 기본 컴포넌트로 돼? → 4. 언어 기본 기능? → 5. 깔린 의존성에 있어? → 6. 한 줄로 돼? → 7. 그제야 최소 구현
 - 통과 결과 예: 라우터 X(화면 3개) · UI 라이브러리 X · 상태관리 라이브러리 X · 서버 X · pnpm/turbo X
-- SH의 Claude Code에서는 `/plugin install ponytail@ponytail` → `/ponytail full` · PR 전 `/ponytail-review`. 이 파일의 사다리는 플러그인이 없는 세션용
+- ponytail 플러그인은 **프로젝트 스코프**로 설치돼 있다(`.claude/settings.json` → 새 세션에서 자동 활성, 기본 full). 레벨 전환 `/ponytail lite|full|ultra` · PR 전 `/ponytail-review`. 데스크톱 앱에는 `/plugin` 명령이 없으니 재설치는 터미널에서 `claude plugin install ponytail@ponytail --scope project`. 이 파일의 사다리는 플러그인이 없는 세션용
 
 ## 하지 않는 것
 - `node_modules`를 리눅스 VM에서 설치하지 않는다(맥에서만) · 파일 삭제는 SH가
