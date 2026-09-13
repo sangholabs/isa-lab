@@ -76,6 +76,8 @@ npm run mobile
 
 `npm run mobile` 뒤 터미널의 QR을 폰 **Expo Go**로 찍습니다. 폰과 맥이 같은 Wi-Fi여야 합니다. iOS 시뮬레이터는 `i`, Android 에뮬레이터는 `a`입니다.
 
+로컬 릴리스 빌드(`npx expo prebuild` 뒤 Xcode·Gradle)를 할 때는 두 가지를 조심하세요. Android는 JDK 17로 빌드합니다. Android Studio에 들어 있는 JDK 25로는 CMake 설정 단계에서 실패합니다. 그리고 prebuild가 `package.json`의 `ios`·`android` 스크립트를 `expo run:*`으로 바꾸니 커밋 전에 되돌립니다. `ios/`·`android/`는 prebuild가 만드는 폴더라 저장소에 넣지 않습니다.
+
 ## 구조
 
 ```
@@ -97,7 +99,7 @@ apps/mobile/
 | 개인정보처리방침 · 문의 링크 | 완료 (웹 배포는 main 병합 후) |
 | 스토어 등록 문구 | [초안](../../docs/store/listing.md) |
 | Apple · Google 개발자 계정, EAS 빌드 | 대기 |
-| Android 실기기 확인 (뒤로가기 · 키보드) | 대기 |
+| Android 확인 (뒤로가기 · 키보드 · 적응형 아이콘) | 에뮬레이터 완료 (Android 16, 릴리스 APK) · 실기기 대기 |
 
 ## 알려진 한계
 - 매매차익만 계산합니다. 배당·이자, 대주주 양도세, 금융소득종합과세는 반영하지 않습니다.
