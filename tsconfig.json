@@ -25,6 +25,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@isa-lab/tax-engine": [
+        "./packages/tax-engine/src/index.ts"
+      ],
+      "@isa-lab/tax-engine/*": [
+        "./packages/tax-engine/src/*"
       ]
     }
   },
@@ -36,6 +42,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "apps"
   ]
 }

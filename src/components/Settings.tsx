@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Badge, Modal, Term } from "./ui";
-import { DEFAULT_FEES } from "@/lib/tax/engine";
-import { RULE_SETS, SOURCES, VERIFIED_AT, proposedItems, type TaxRuleSet } from "@/lib/tax/rules";
+import { DEFAULT_FEES } from "@isa-lab/tax-engine/engine";
+import { RULE_SETS, SOURCES, VERIFIED_AT, proposedItems, type TaxRuleSet } from "@isa-lab/tax-engine/rules";
 import type { FeeSettings } from "@/lib/portfolio/types";
 
 /**
@@ -169,6 +169,7 @@ export function Settings({
             <Line label="ISA 비과세 한도 (일반형)" v={rules.isa.taxFreeLimitGeneral.note} />
             <Line label="ISA 비과세 한도 (서민형)" v={rules.isa.taxFreeLimitLowIncome.note} />
             <Line label={<Term k="의무보유기간" />} v={rules.isa.mandatoryHoldingYears.note} />
+            <Line label={<Term k="금융소득종합과세" />} v={rules.financialIncomeThreshold.note} />
           </div>
 
           <p className="mb-1.5 text-[11px] text-muted">참고한 자료</p>
@@ -187,9 +188,11 @@ export function Settings({
             ))}
           </ul>
 
-          <p className="mt-3 text-[11px] leading-relaxed text-muted">
-            룰셋은 화면 위 선택창에서 바꿀 수 있습니다 ({RULE_SETS.map((r) => r.label).join(" / ")}).
-          </p>
+          {RULE_SETS.length > 1 && (
+            <p className="mt-3 text-[11px] leading-relaxed text-muted">
+              룰셋은 화면 위 선택창에서 바꿀 수 있습니다 ({RULE_SETS.map((r) => r.label).join(" / ")}).
+            </p>
+          )}
         </>
       )}
     </Modal>

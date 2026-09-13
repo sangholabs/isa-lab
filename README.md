@@ -3,7 +3,7 @@
 **주식도 코인도 처음인 사람이, 계좌를 만들기 전에 먼저 굴려보는 곳.**
 국내주식 · 국내상장 ETF · 해외주식 · 코인을 한 화면에서 모의매매하고, ISA 계좌가 실제로 얼마를 아껴주는지 계산합니다.
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![tests](https://img.shields.io/badge/tests-59%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-green)
+![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![tests](https://img.shields.io/badge/tests-75%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-green)
 
 실거래 계좌와 연결되지 않습니다. 주문은 전부 가상이고, 시세만 실제 데이터입니다.
 **시세에는 API 키가 하나도 필요 없습니다** — 클론해서 `npm run dev` 하면 바로 돕니다.
@@ -19,7 +19,7 @@ ISA가 좋다는 말은 어디에나 있는데, **내 매매 기준으로 얼마
 
 | 자산 | 매매차익 과세 | 손익통산 | ISA 편입 |
 |---|---|---|---|
-| 국내 상장 주식 | 비과세 (소액주주) | — | ✅ |
+| 국내 상장 주식 | 비과세 (소액주주) | ISA 안에서 순손실만 차감 | ✅ |
 | 국내상장 **국내주식형** ETF | 비과세 | — | ✅ |
 | 국내상장 **해외·채권** ETF | **배당소득 15.4%** | ❌ **불가** | ✅ |
 | 해외 상장 주식·ETF | 양도소득 22% (연 250만원 공제) | ✅ | ❌ |
@@ -52,7 +52,7 @@ ISA 안에서는 통산이 되고, 남은 순이익에서 비과세 한도를 �
 
 ### 세금 · 수수료
 - 같은 매매를 일반계좌와 ISA로 굴렸을 때의 세금을 나란히. 항목별 과세표준·세율·근거 표시
-- `2026년 현행`과 `ISA 개편안(미확정)` 룰셋 전환
+- 룰셋마다 버전·근거·확정 여부를 붙였습니다. 세법이 바뀌면 룰셋만 갈아 끼웁니다 (지금은 `2026년 현행`)
 - **수수료를 직접 설정** — 증권사 위탁수수료·환전 스프레드·코인 수수료. 프리셋 3종 + 직접 입력
 - **세율 출처 화면** — 어느 자료를 언제 확인해 넣었는지 항목별로 열람
 
@@ -67,29 +67,33 @@ ISA 안에서는 통산이 되고, 남은 순이익에서 비과세 한도를 �
 
 ![시작하기](docs/screenshot-start.png)
 
+### 모바일 앱 — 덜내
+세금 비교만 떼어낸 iOS·Android 앱입니다. 같은 세금 엔진을 폰 안에서 돌리고, 서버·로그인·네트워크가 없습니다. 자세한 설계는 [apps/mobile](apps/mobile/README.md).
+
+<p><img src="docs/store/screenshots/1-result.jpg" width="180" alt="덜내 결과 화면"> <img src="docs/store/screenshots/3-sources.jpg" width="180" alt="덜내 근거 화면"></p>
+
 ---
 
 ## 설계에서 신경 쓴 것
 
 ### 1. 세율을 코드에 박지 않았다
 
-세법은 바뀝니다. 2026년에도 증권거래세가 올랐고 ISA 개편안이 논의 중입니다.
-모든 숫자를 [`src/lib/tax/rules.ts`](src/lib/tax/rules.ts) 한 곳에 모으고, 항목마다 **근거와 확정 여부**를 달았습니다.
+세법은 바뀝니다. 2026년에도 증권거래세가 올랐고, 정기국회에는 새 ISA 유형을 만드는 세법개정안이 올라가 있습니다.
+모든 숫자를 [`packages/tax-engine/src/rules.ts`](packages/tax-engine/src/rules.ts) 한 곳에 모으고, 항목마다 **근거와 확정 여부**를 달았습니다.
 
 ```ts
 krSellTaxRate: {
   KOSPI: enacted(0.002, "증권거래세 0.05% + 농어촌특별세 0.15% = 0.20% (2026.01.01 인상)"),
 },
-isa: {
-  annualContributionLimit: proposed(40_000_000, "연 4,000만원으로 확대 (발표, 확정 전)"),
-}
+cryptoTaxRate: enacted(0.22, "20% + 지방소득세 2% (2027년 시행)"),
 ```
 
 `proposed` 항목은 화면에 **미확정 배지**가 붙습니다. 확정 전 수치를 확정처럼 보여주면 계산기 전체를 못 믿게 됩니다.
+출처는 증권사 안내문이 아니라 법령 원문(law.go.kr)과 국세청으로 달았습니다. 입법되지 않은 2024년 ISA 개편안은 룰셋에서 지웠습니다 ([ADR-0006](docs/adr/0006-remove-unenacted-isa-reform-ruleset.md)).
 
 ### 2. 할 수 있는 범위를 명시했다
 
-세무 검토를 받지 않았습니다. 그래서 숨기는 대신 계산에 쓴 가정을 화면에 띄웁니다 — 소액주주 가정, ISA 통산 대상에서 국내주식 매매차익 제외, 배당·분배금 미구현.
+세무 검토를 받지 않았습니다. 그래서 숨기는 대신 계산에 쓴 가정을 화면에 띄웁니다 — 소액주주 가정, ISA는 해지할 때 한 번 정산, 해외 ETF 과세표준기준가 미반영, 배당·분배금 미구현.
 
 ISA 비교도 **ISA에 담을 수 있는 자산만** 놓고 합니다. 해외주식까지 넣고 "ISA면 이만큼 아꼈다"고 하면 거짓말입니다 — 애초에 살 수 없기 때문입니다.
 
@@ -218,7 +222,7 @@ npm run dev   # http://localhost:3000
 환경변수 없음. 포트폴리오와 API 키는 브라우저 `localStorage`에만 저장되고 서버로 가지 않습니다.
 
 ```bash
-npm test          # 세금·주문·성과·장상태·실시간·리서치 점수 테스트 59개
+npm test          # 세금·주문·성과·리서치 점수·앱 입력 테스트 75개
 npm run build     # 프로덕션 빌드
 ```
 
@@ -227,6 +231,11 @@ npm run build     # 프로덕션 빌드
 ## 구조
 
 ```
+packages/tax-engine/src/    세금 엔진 — 웹·앱이 같은 소스를 쓴다, 의존성 0
+  rules.ts                  세율·한도 룰셋 (버전 + 근거 + 확정 여부)
+  engine.ts                 거래비용 · 연간 정산 · ISA 비교
+  isa.ts                    납입한도(이월) · 편입 제한 · 의무보유
+apps/mobile/                덜내 — ISA 절세 계산기 앱 (Expo)
 src/
   app/
     api/quotes/route.ts     통합 시세 (소스 선택 · 부분 실패 처리)
@@ -235,10 +244,6 @@ src/
     api/rules/route.ts      룰셋 메타데이터
     page.tsx                대시보드 · 탭
   lib/
-    tax/
-      rules.ts              세율·한도 룰셋 (버전 + 근거 + 확정 여부)
-      engine.ts             거래비용 · 연간 정산 · ISA 비교
-      isa.ts                납입한도(이월) · 편입 제한 · 의무보유
     market/
       http.ts               재시도 · 레이트리밋 · TTL 캐시 · stale 폴백
       marketState.ts        국내장/미국장/코인 개장 판정
@@ -253,7 +258,7 @@ src/
       providers.ts          4개 제공사 어댑터 · JSON 파싱 · 키 redact
     glossary.ts             용어 사전 (툴팁)
   components/               UI
-tests/                      59 passing
+tests/                      75 passing
 ```
 
 세금·주문·성과 계산은 전부 순수 함수라 UI 없이 테스트됩니다.
@@ -282,7 +287,6 @@ tests/                      59 passing
 - **거래소 휴장일 미반영** — 장 상태는 요일과 시간만 봅니다. 공휴일에는 `장중`으로 표시될 수 있어, 시세 시각을 함께 띄웁니다
 - **지정가 주문 없음** — 현재가로만 체결됩니다
 - **국내상장 ETF 분류는 수기** — 공식 분류 필드를 찾지 못해 목록에 직접 지정했습니다
-- **거래소 휴장일 미반영** — 장 상태는 요일·시간만 봅니다
 - **실거래 주문 없음** — 위 참조
 
 ## 면책

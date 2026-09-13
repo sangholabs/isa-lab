@@ -1,0 +1,284 @@
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { BackHandler, KeyboardAvoidingView, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { RULE_SETS, SOURCES, VERIFIED_AT, getRuleSet } from "@isa-lab/tax-engine";
+import type { AssetKind, Sourced, TaxBreakdownLine, TaxResult } from "@isa-lab/tax-engine";
+import { compute } from "./src/compute";
+import { pct, won } from "./src/format";
+import { DEMO_ENTRIES, KINDS, STORAGE_KEY, initialState, restore, type AppState } from "./src/state";
+
+type Screen = "input" | "result" | "sources";
+const WEB_URL = "https://isa-lab.vercel.app";
+const SUPPORT_URL = "https://github.com/sangholabs/isa-lab/issues";
+const open = (url: string) => { Linking.openURL(encodeURI(url)).catch(() => {}); }; // 법령 URL에 한글이 들어 있다
+
+export default function App() {
+  const [state, setState] = useState<AppState>(initialState);
+  const [screen, setScreen] = useState<Screen>("input");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // 기기에만 저장한다. 서버 없음. 읽기에 실패하면 이번 실행은 저장하지 않는다 — 기존 저장본을 빈 값으로 덮지 않게
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => { setState(restore(raw)); setLoaded(true); })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (loaded) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
+  }, [state, loaded]);
+
+  const outcome = compute(state);
+  const rules = getRuleSet(state.ruleSetId);
+  const back = () => setScreen(screen === "sources" ? "result" : "input");
+  const showDemo = () => { setState({ ...state, entries: DEMO_ENTRIES }); setScreen("result"); };
+
+  // Android 뒤로가기 = 헤더 「‹ 뒤로」. 입력 화면에서만 기본 동작(앱 나가기)
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (screen === "input") return false;
+      back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [screen]);
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
+        <StatusBar style="dark" />
+        <View style={s.header}>
+          {screen !== "input" ? (
+            <Pressable role="button" aria-label="뒤로" onPress={back} hitSlop={12}><Text style={s.link}>‹ 뒤로</Text></Pressable>
+          ) : <Text style={s.brand}>덜내</Text>}
+          <Text style={s.title} role="heading">{screen === "input" ? "올해 실현손익" : screen === "result" ? "세금 비교" : "근거"}</Text>
+          <Pressable role="button" onPress={() => setSettingsOpen(true)} hitSlop={12}><Text style={s.link}>설정</Text></Pressable>
+        </View>
+
+        {screen === "input" && (
+          <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
+              <Text style={s.lead}>수수료·거래세를 뺀 뒤의 <Text style={s.b}>실현손익</Text>을 만원 단위로 넣으세요. 이익과 손실은 서로 빼지 말고 따로 적습니다. 계좌를 만들기 전에, 내 매매 기준으로 ISA가 얼마를 아끼는지 봅니다.</Text>
+              {KINDS.map(({ kind, label, hint }) => (
+                <View key={kind} style={s.card}>
+                  <Text style={s.cardTitle}>{label}</Text>
+                  <Text style={s.hint}>{hint(rules)}</Text>
+                  <View style={s.row}>
+                    <AmountField label="이익" name={label} value={state.entries[kind].profit} onChange={(v) => setEntry(kind, "profit", v)} />
+                    <AmountField label="손실" name={label} value={state.entries[kind].loss} onChange={(v) => setEntry(kind, "loss", v)} />
+                  </View>
+                </View>
+              ))}
+              <Pressable role="button" style={s.primary} onPress={() => setScreen("result")}><Text style={s.primaryText}>세금 비교하기</Text></Pressable>
+              <Pressable role="button" style={s.ghost} onPress={showDemo}><Text style={s.ghostText}>예시로 보기</Text></Pressable>
+              <Pressable role="button" style={s.ghost} onPress={() => setState({ ...state, entries: initialState.entries })}><Text style={s.ghostText}>지우기</Text></Pressable>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        )}
+
+        {screen === "result" && (
+          <ScrollView contentContainerStyle={s.body}>
+            {/* 룰셋이 하나뿐이면 고를 게 없다 (ADR-0006) */}
+            {RULE_SETS.length > 1 && <Segmented options={RULE_SETS} value={state.ruleSetId} onChange={(id) => setState({ ...state, ruleSetId: id })} />}
+            <View style={[s.card, s.hero]}>
+              <Text style={s.heroLabel}>ISA로 아끼는 세금 · {state.year}년 · {state.isaType === "isa_general" ? "일반형" : "서민형"}</Text>
+              <Text style={s.heroNumber}>{won(outcome.comparison.saved)}</Text>
+              <View style={s.row}>
+                <Stat label="일반계좌" value={won(outcome.comparison.regular.totalTax)} />
+                <Stat label="ISA" value={won(outcome.comparison.isa.totalTax)} />
+              </View>
+              {!state.holdingSatisfied && <Text style={s.warn}>의무보유 {rules.isa.mandatoryHoldingYears.value}년을 채우지 않으면 ISA도 일반계좌와 똑같이 과세됩니다.</Text>}
+              {rules.status === "proposed" && <Text style={s.warn}>이 룰셋은 발표만 됐고 확정 전입니다. 현행 기준과 나란히 보세요.</Text>}
+            </View>
+            {outcome.realized.length === 0 && <Pressable role="button" style={s.ghost} onPress={showDemo}><Text style={s.ghostText}>입력한 손익이 없습니다 — 예시로 보기</Text></Pressable>}
+            <Breakdown title="일반계좌라면" result={outcome.comparison.regular} />
+            <Breakdown title="ISA라면" result={outcome.comparison.isa} />
+            {outcome.outsideIsa && (
+              <View style={s.card}>
+                <Text style={s.cardTitle}>ISA에 담을 수 없는 자산</Text>
+                <Text style={s.hint}>{KINDS.filter((k) => outcome.comparison.excludedKinds.includes(k.kind)).map((k) => k.label).join(" · ")} — 어느 계좌든 같은 세금을 냅니다. 비교에서는 뺐습니다.</Text>
+                {outcome.outsideIsa.lines.map((l, i) => <Line key={i} l={l} />)}
+              </View>
+            )}
+            <Pressable role="button" style={s.primary} onPress={() => setScreen("sources")}><Text style={s.primaryText}>왜 이 세금인지 — 근거 보기</Text></Pressable>
+            <Pressable role="button" style={s.ghost} onPress={() => setScreen("input")}><Text style={s.ghostText}>입력 고치기</Text></Pressable>
+          </ScrollView>
+        )}
+
+        {screen === "sources" && (
+          <ScrollView contentContainerStyle={s.body}>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>적용 룰셋 — {rules.label}</Text>
+              <Text style={s.hint}>시행일 {rules.effectiveFrom} · 자료 확인일 {VERIFIED_AT}</Text>
+              <Rule label="ISA 비과세 한도 (일반형)" v={rules.isa.taxFreeLimitGeneral} />
+              <Rule label="ISA 비과세 한도 (서민형)" v={rules.isa.taxFreeLimitLowIncome} />
+              <Rule label="한도 초과분 분리과세" v={rules.isa.separateTaxRate} />
+              <Rule label="연간 납입한도" v={rules.isa.annualContributionLimit} />
+              <Rule label="총 납입한도" v={rules.isa.totalContributionLimit} />
+              <Rule label="의무보유" v={rules.isa.mandatoryHoldingYears} />
+              <Rule label="배당소득세 (해외·채권 ETF 매매차익)" v={rules.krDividendTaxRate} />
+              <Rule label="해외주식 양도소득세" v={rules.overseasCapitalGainTaxRate} />
+              <Rule label="해외주식 기본공제" v={rules.overseasCapitalGainDeduction} />
+              <Rule label="가상자산 과세 시작" v={rules.cryptoTaxStartYear} />
+              <Rule label="가상자산 기본공제" v={rules.cryptoDeduction} />
+              <Rule label="가상자산 세율" v={rules.cryptoTaxRate} />
+            </View>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>출처</Text>
+              {SOURCES.map((src) => (
+                <Pressable key={src.url} role="link" onPress={() => open(src.url)} style={s.srcRow}><Text style={s.link}>{src.label}</Text></Pressable>
+              ))}
+            </View>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>알려드립니다</Text>
+              <Text style={s.hint}>이 앱은 공개된 자료를 정리해 계산하는 도구이며 세무 검토를 받은 것이 아닙니다. 투자 권유가 아니며, 실제 신고·납부는 국세청·증권사 기준을 따르세요. 입력값은 이 기기에만 저장되고 서버로 전송되지 않습니다.</Text>
+              <Pressable role="link" onPress={() => open(WEB_URL)} style={s.srcRow}><Text style={s.link}>웹에서 종목 단위로 굴려보기 → {WEB_URL}</Text></Pressable>
+            </View>
+          </ScrollView>
+        )}
+
+        <Modal visible={settingsOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSettingsOpen(false)}>
+          <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
+            <View style={s.header}>
+              <View style={{ width: 48 }} />
+              <Text style={s.title} role="heading">설정</Text>
+              <Pressable role="button" onPress={() => setSettingsOpen(false)} hitSlop={12}><Text style={s.link}>닫기</Text></Pressable>
+            </View>
+            <ScrollView contentContainerStyle={s.body}>
+              <Text style={s.cardTitle}>ISA 유형</Text>
+              <Text style={s.hint}>비과세 한도 일반형 {won(rules.isa.taxFreeLimitGeneral.value)} · 서민형 {won(rules.isa.taxFreeLimitLowIncome.value)}</Text>
+              <Segmented options={[{ id: "isa_general", label: "일반형" }, { id: "isa_low_income", label: "서민형" }]} value={state.isaType} onChange={(id) => setState({ ...state, isaType: id as AppState["isaType"] })} />
+              <Text style={s.cardTitle}>정산 연도</Text>
+              <Segmented options={[2026, 2027].map((y) => ({ id: String(y), label: y === rules.cryptoTaxStartYear.value ? `${y} (코인 과세 시작)` : String(y) }))} value={String(state.year)} onChange={(id) => setState({ ...state, year: Number(id) as AppState["year"] })} />
+              {RULE_SETS.length > 1 && (
+                <>
+                  <Text style={s.cardTitle}>룰셋</Text>
+                  <Segmented options={RULE_SETS} value={state.ruleSetId} onChange={(id) => setState({ ...state, ruleSetId: id })} />
+                </>
+              )}
+              <View style={[s.row, { alignItems: "center", justifyContent: "space-between", marginTop: 16 }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.cardTitle}>의무보유 {rules.isa.mandatoryHoldingYears.value}년을 채울 예정</Text>
+                  <Text style={s.hint}>중간에 해지하면 ISA 혜택이 사라집니다</Text>
+                </View>
+                <Switch accessibilityLabel={`의무보유 ${rules.isa.mandatoryHoldingYears.value}년을 채울 예정`} value={state.holdingSatisfied} onValueChange={(v) => setState({ ...state, holdingSatisfied: v })} />
+              </View>
+              <View style={[s.card, { marginTop: 16 }]}>
+                <Text style={s.cardTitle}>앱 정보</Text>
+                <Text style={s.hint}>입력값은 이 기기에만 저장되고 어디로도 전송되지 않습니다.</Text>
+                <Pressable role="link" onPress={() => open(`${WEB_URL}/privacy`)} style={s.srcRow}><Text style={s.link}>개인정보처리방침</Text></Pressable>
+                <Pressable role="link" onPress={() => open(SUPPORT_URL)} style={s.srcRow}><Text style={s.link}>문의·오류 제보</Text></Pressable>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+
+  function setEntry(kind: AssetKind, field: "profit" | "loss", value: string) {
+    setState({ ...state, entries: { ...state.entries, [kind]: { ...state.entries[kind], [field]: value } } });
+  }
+}
+
+function AmountField({ label, name, value, onChange }: { label: string; name: string; value: string; onChange: (v: string) => void }) {
+  // 숫자와 소수점 하나만 받는다. "1.2.3"을 통과시키면 0으로 계산돼 조용히 빠진다. 쉼표를 소수점으로 쓰는 지역 키보드는 쉼표 키만 있다
+  const accept = (t: string) => { const v = t.replace(/,/g, ".").replace(/[^\d.]/g, ""); if (/^\d*\.?\d*$/.test(v)) onChange(v); };
+  return (
+    <View style={s.field}>
+      <Text style={s.fieldLabel}>{label}</Text>
+      <View style={s.inputWrap}>
+        <TextInput style={s.input} aria-label={`${name} ${label}, 만원`} value={value} onChangeText={accept} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#9a9a9a" maxLength={9} />
+        <Text style={s.unit}>만원</Text>
+      </View>
+    </View>
+  );
+}
+
+function Segmented({ options, value, onChange }: { options: readonly { id: string; label: string }[]; value: string; onChange: (id: string) => void }) {
+  return (
+    <View style={s.seg}>
+      {options.map((o) => (
+        <Pressable key={o.id} role="button" aria-selected={o.id === value} onPress={() => onChange(o.id)} style={[s.segItem, o.id === value && s.segOn]}>
+          <Text style={[s.segText, o.id === value && s.segTextOn]}>{o.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.stat}><Text style={s.hint}>{label}</Text><Text style={s.statValue}>{value}</Text></View>
+  );
+}
+
+function Line({ l }: { l: TaxBreakdownLine }) {
+  return (
+    <View style={s.line}>
+      <View style={{ flex: 1 }}><Text style={s.lineLabel}>{l.label}</Text><Text style={s.hint}>{l.note}</Text>{l.taxableBase > 0 && <Text style={s.hint}>과세표준 {won(l.taxableBase)}</Text>}</View>
+      <View style={{ alignItems: "flex-end" }}><Text style={s.lineTax}>{won(l.tax)}</Text><Text style={s.hint}>{pct(l.rate)}</Text></View>
+    </View>
+  );
+}
+
+function Breakdown({ title, result }: { title: string; result: TaxResult }) {
+  return (
+    <View style={s.card}>
+      <View style={[s.row, { justifyContent: "space-between" }]}><Text style={s.cardTitle}>{title}</Text><Text style={s.cardTitle}>{won(result.totalTax)}</Text></View>
+      {result.lines.length === 0 && <Text style={s.hint}>과세 항목이 없습니다.</Text>}
+      {result.lines.map((l, i) => <Line key={i} l={l} />)}
+      {result.assumptions.map((a, i) => <Text key={i} style={s.assume}>· {a}</Text>)}
+    </View>
+  );
+}
+
+function Rule({ label, v }: { label: string; v: Sourced<number> }) {
+  return (
+    <View style={s.line}>
+      <View style={{ flex: 1 }}><Text style={s.lineLabel}>{label}{v.status === "proposed" ? "  (확정 전)" : ""}</Text><Text style={s.hint}>{v.note}</Text></View>
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#f7f7f5" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
+  brand: { fontSize: 18, fontWeight: "800", color: "#1f4e9c" },
+  title: { fontSize: 17, fontWeight: "700", color: "#1d1d1b" },
+  link: { fontSize: 15, color: "#1f4e9c", fontWeight: "600" },
+  body: { padding: 16, paddingBottom: 48, gap: 12 },
+  lead: { fontSize: 15, lineHeight: 22, color: "#444" },
+  b: { fontWeight: "700", color: "#1d1d1b" },
+  card: { backgroundColor: "#fff", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#e6e3db", gap: 6 },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: "#1d1d1b" },
+  hint: { fontSize: 13, color: "#6b6a66", lineHeight: 18 },
+  row: { flexDirection: "row", gap: 10 },
+  field: { flex: 1, gap: 4 },
+  fieldLabel: { fontSize: 12, color: "#6b6a66" },
+  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#d9d6cd", borderRadius: 8, paddingHorizontal: 10, backgroundColor: "#fffdf8" },
+  input: { flex: 1, fontSize: 17, paddingVertical: 10, color: "#1d1d1b", textAlign: "right" },
+  unit: { fontSize: 13, color: "#6b6a66", marginLeft: 6 },
+  primary: { backgroundColor: "#1f4e9c", borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+  primaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  ghost: { paddingVertical: 12, alignItems: "center" },
+  ghostText: { color: "#1f4e9c", fontSize: 15, fontWeight: "600" },
+  hero: { alignItems: "center", gap: 8 },
+  heroLabel: { fontSize: 13, color: "#6b6a66" },
+  heroNumber: { fontSize: 34, fontWeight: "800", color: "#0f7b6c" },
+  stat: { flex: 1, alignItems: "center", paddingVertical: 8, backgroundColor: "#f2f6fc", borderRadius: 8 },
+  statValue: { fontSize: 16, fontWeight: "700", color: "#1d1d1b" },
+  warn: { fontSize: 13, color: "#a8321f", textAlign: "center" },
+  line: { flexDirection: "row", gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#f0ede6" },
+  lineLabel: { fontSize: 14, color: "#1d1d1b", fontWeight: "600" },
+  lineTax: { fontSize: 15, fontWeight: "700", color: "#1d1d1b" },
+  assume: { fontSize: 12, color: "#6b6a66", marginTop: 4 },
+  seg: { flexDirection: "row", backgroundColor: "#ebe9e3", borderRadius: 10, padding: 3, marginBottom: 8 },
+  segItem: { flex: 1, paddingVertical: 11, alignItems: "center", borderRadius: 8 },
+  segOn: { backgroundColor: "#fff" },
+  segText: { fontSize: 13, color: "#6b6a66", fontWeight: "600" },
+  segTextOn: { color: "#1d1d1b" },
+  srcRow: { paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#f0ede6" },
+});

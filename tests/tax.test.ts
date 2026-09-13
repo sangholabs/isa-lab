@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { RULES_2026, RULES_2026_ISA_REFORM, proposedItems } from "@/lib/tax/rules";
-import { computeAnnualTax, compareIsa, computeTradeCost, DEFAULT_FEES } from "@/lib/tax/engine";
-import { checkContribution, checkIsaEligibility, holdingStatus } from "@/lib/tax/isa";
+import { RULES_2026, RULE_SETS, getRuleSet, proposedItems } from "@isa-lab/tax-engine/rules";
+import { computeAnnualTax, compareIsa, computeTradeCost, DEFAULT_FEES } from "@isa-lab/tax-engine/engine";
+import { checkContribution, checkIsaEligibility, holdingStatus } from "@isa-lab/tax-engine/isa";
 import { buildConsensus, scoreAnalysis } from "@/lib/research/score";
 import { buildScenario } from "@/lib/research/scenario";
 
@@ -134,12 +134,89 @@ describe("ISA 정산", () => {
     expect(c.saved).toBeCloseTo(1_540_000, 6);
   });
 
-  it("개편안 룰셋에서는 비과세 한도가 커져 절세액이 늘어난다", () => {
-    const big = [{ kind: "kr_etf_other" as const, amount: 6_000_000 }];
-    const now = compareIsa({ year: 2026, rules: RULES_2026, realized: big });
-    const reform = compareIsa({ year: 2026, rules: RULES_2026_ISA_REFORM, realized: big });
-    expect(reform.isa.totalTax).toBeLessThan(now.isa.totalTax);
-    expect(reform.saved).toBeGreaterThan(now.saved);
+  it("국내 상장주식 매매손실은 ISA 순이익에서 뺀다 (조특령 제93조의4⑨)", () => {
+    const r = computeAnnualTax({
+      account: "isa_general",
+      year: 2026,
+      rules: R,
+      realized: [
+        { kind: "kr_etf_other", amount: 10_000_000 },
+        { kind: "kr_stock", amount: -5_000_000 },
+      ],
+    });
+    // 1,000만 − 500만 = 500만 → 비과세 200만 초과분 300만 × 9.9%
+    expect(r.totalTax).toBeCloseTo(3_000_000 * 0.099, 6);
+  });
+
+  it("국내 상장주식 매매이익은 ISA 순이익에 더하지 않는다 — 이자·배당소득이 아니다", () => {
+    const r = computeAnnualTax({
+      account: "isa_general",
+      year: 2026,
+      rules: R,
+      realized: [
+        { kind: "kr_etf_other", amount: 5_000_000 },
+        { kind: "kr_stock", amount: 9_000_000 },
+      ],
+    });
+    expect(r.totalTax).toBeCloseTo((5_000_000 - 2_000_000) * 0.099, 6);
+  });
+
+  it("경계: 국내주식은 이익·손실을 먼저 합쳐 남은 순손실만 뺀다", () => {
+    const r = computeAnnualTax({
+      account: "isa_general",
+      year: 2026,
+      rules: R,
+      realized: [
+        { kind: "kr_etf_other", amount: 6_000_000 },
+        { kind: "kr_stock", amount: 3_000_000 },
+        { kind: "kr_stock", amount: -4_000_000 },
+      ],
+    });
+    // 국내주식 순손실 100만 → 600만 − 100만 = 500만 → 초과분 300만 × 9.9%
+    expect(r.totalTax).toBeCloseTo(3_000_000 * 0.099, 6);
+  });
+
+  it("국내주식형 ETF 손실은 ISA 순이익에서 빼지 않는다 (조특령 제93조의4⑨2호)", () => {
+    const r = computeAnnualTax({
+      account: "isa_general",
+      year: 2026,
+      rules: R,
+      realized: [
+        { kind: "kr_etf_other", amount: 5_000_000 },
+        { kind: "kr_etf_equity", amount: -5_000_000 },
+      ],
+    });
+    expect(r.totalTax).toBeCloseTo((5_000_000 - 2_000_000) * 0.099, 6);
+  });
+
+  it("국내주식 손실 차감은 일반계좌 세금을 바꾸지 않고 절세액만 키운다", () => {
+    const realizedWithLoss = [
+      { kind: "kr_etf_other" as const, amount: 10_000_000 },
+      { kind: "kr_stock" as const, amount: -5_000_000 },
+    ];
+    const c = compareIsa({ year: 2026, rules: R, realized: realizedWithLoss });
+    expect(c.regular.totalTax).toBeCloseTo(1_540_000, 6);
+    expect(c.saved).toBeCloseTo(1_540_000 - 3_000_000 * 0.099, 6);
+  });
+
+  it("경계: 국내주식 손실이 국내주식형 ETF 이익과 합쳐 0이 돼도 손실 차감을 설명한다 (금액은 원 단위 반올림)", () => {
+    const r = computeAnnualTax({
+      account: "isa_general",
+      year: 2026,
+      rules: R,
+      realized: [
+        { kind: "kr_etf_other", amount: 5_000_000 },
+        { kind: "kr_stock", amount: -3_000_000.4 },
+        { kind: "kr_etf_equity", amount: 3_000_000.4 },
+      ],
+    });
+    expect(r.lines.some((l) => l.note.includes("3,000,000원"))).toBe(true);
+    expect(r.totalTax).toBe(0); // 500만 − 300만 = 200만 ≤ 비과세 한도 200만
+  });
+
+  it("ISA는 해지할 때 계좌 전체를 한 번 정산한다는 가정을 밝힌다 (조특법 제91조의18⑤)", () => {
+    const r = computeAnnualTax({ account: "isa_general", year: 2026, rules: R, realized });
+    expect(r.assumptions.join(" ")).toContain("해지");
   });
 });
 
@@ -163,10 +240,6 @@ describe("ISA 납입한도", () => {
     expect(c.remainingTotal).toBe(0);
   });
 
-  it("개편안에서는 연 4,000만원까지 들어간다", () => {
-    const c = checkContribution({ rules: RULES_2026_ISA_REFORM, ledger: {}, openedYear: 2026, year: 2026, amount: 40_000_000 });
-    expect(c.ok).toBe(true);
-  });
 });
 
 describe("ISA 편입 제한", () => {
@@ -194,6 +267,14 @@ describe("의무보유기간", () => {
     expect(s.monthsLeft).toBe(0);
   });
 
+  it("3년이 되는 날 전날까지는 미충족 — 개월 수가 아니라 날짜로 센다 (조특법 제91조의18)", () => {
+    const opened = new Date("2023-01-31");
+    const before = holdingStatus({ rules: R, openedAt: opened, now: new Date("2026-01-30") });
+    expect(before.satisfied).toBe(false);
+    expect(before.monthsLeft).toBe(1);
+    expect(holdingStatus({ rules: R, openedAt: opened, now: new Date("2026-01-31") }).satisfied).toBe(true);
+  });
+
   it("아직이면 남은 개월 수를 알려준다", () => {
     const s = holdingStatus({ rules: R, openedAt: new Date("2025-01-01"), now: new Date("2026-01-01") });
     expect(s.satisfied).toBe(false);
@@ -202,14 +283,16 @@ describe("의무보유기간", () => {
 });
 
 describe("룰셋 메타데이터", () => {
-  it("현행 룰셋에는 미확정 ISA 항목이 없다", () => {
-    const items = proposedItems(RULES_2026).filter((s) => s.startsWith("isa."));
-    expect(items).toHaveLength(0);
+  it("현행 룰셋에 확정 전 항목이 없다 — 가상자산 공제·세율도 입법돼 2027년 시행", () => {
+    expect(proposedItems(RULES_2026)).toEqual([]);
+    expect(RULES_2026.cryptoTaxStartYear.value).toBe(2027);
+    expect(RULES_2026.cryptoDeduction.status).toBe("enacted");
+    expect(RULES_2026.cryptoTaxRate.status).toBe("enacted");
   });
 
-  it("개편안 룰셋은 미확정 항목을 노출한다", () => {
-    const items = proposedItems(RULES_2026_ISA_REFORM).filter((s) => s.startsWith("isa."));
-    expect(items.length).toBeGreaterThan(0);
+  it("입법되지 않은 2024년 ISA 개편안 룰셋은 없다 — 예전 id로 저장된 값은 현행으로 돌아간다", () => {
+    expect(RULE_SETS.map((r) => r.id)).toEqual(["kr-2026"]);
+    expect(getRuleSet("kr-2026-isa-reform")).toBe(RULES_2026);
   });
 });
 

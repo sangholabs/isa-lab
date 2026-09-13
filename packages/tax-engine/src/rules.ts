@@ -6,7 +6,7 @@
  * UI는 어떤 룰셋으로 계산했는지와 미확정 항목을 항상 표시한다.
  *
  * ⚠️ 이 값들은 공개된 자료를 정리한 것이고 세무 검토를 받은 것이 아니다.
- *    실제 신고·납부 판단에 쓰지 말 것. (src/lib/tax/DISCLAIMER 참고)
+ *    실제 신고·납부 판단에 쓰지 말 것. (아래 DISCLAIMER 참고)
  */
 
 export type RuleStatus = "enacted" | "proposed";
@@ -20,22 +20,26 @@ export interface Sourced<T> {
 }
 
 const enacted = <T>(value: T, note: string): Sourced<T> => ({ value, status: "enacted", note });
-const proposed = <T>(value: T, note: string): Sourced<T> => ({ value, status: "proposed", note });
 
 /**
  * 세율을 API로 받아올 방법은 없다. 국가법령정보 OPEN API는 법령 "본문"만 주고,
  * 별표·부칙·특례가 얽혀 있어 자동 파싱은 조용히 틀린다. 그래서 사람이 확인해
  * 여기 적고, 언제 무엇을 보고 적었는지를 함께 남긴다.
  */
-export const VERIFIED_AT = "2026-09-06";
+export const VERIFIED_AT = "2026-09-14";
 
 export const SOURCES: { label: string; url: string }[] = [
-  { label: "2026년 증권거래세율 인상 (코스피 0.20% · 코스닥 0.20%)", url: "https://www.ds-sec.co.kr/bbs/board.php?bo_table=sub06_10&wr_id=779" },
-  { label: "ETF 유형별 과세 (국내주식형 비과세 / 기타 ETF 15.4%)", url: "https://kbthink.com/etf/etf-tax.html" },
-  { label: "해외주식 양도소득세 250만원 공제 · 22%", url: "https://wealthmoa.com/korea-stock-tax-2026/" },
-  { label: "가상자산 과세 2027년 시행", url: "https://kbthink.com/crypto/crypto-tax.html" },
-  { label: "국가법령정보 공동활용 (법령 원문 확인용)", url: "https://open.law.go.kr/LSO/openApi/guideList.do" },
-  { label: "국세법령정보시스템", url: "https://taxlaw.nts.go.kr/" },
+  // 세율을 바꾼 개정본(대통령령 제36001호)에 고정한다. 「현행」 통합본 딥링크는 뒤에 다른 개정이 겹치면 다른 조문을 보여 준 적이 있다
+  { label: "증권거래세율 — 증권거래세법 시행령 제5조 (대통령령 제36001호, 2026.1.1 시행)", url: "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=282431" },
+  { label: "유가증권시장 농어촌특별세 0.15% — 농어촌특별세법 제5조", url: "https://www.law.go.kr/법령/농어촌특별세법/제5조" },
+  { label: "ETF 과세 — 국내주식형 비과세 · 해외지수 ETF 배당소득 (소득세법 시행령 제26조의2)", url: "https://www.law.go.kr/법령/소득세법시행령/제26조의2" },
+  { label: "배당소득 원천징수 14% — 소득세법 제129조", url: "https://www.law.go.kr/법령/소득세법/제129조" },
+  { label: "해외주식 양도소득 연 250만원 공제 — 소득세법 제103조", url: "https://www.law.go.kr/법령/소득세법/제103조" },
+  { label: "해외주식 양도소득세율 20% — 소득세법 제104조", url: "https://www.law.go.kr/법령/소득세법/제104조" },
+  { label: "금융소득종합과세 기준 연 2,000만원 — 소득세법 제14조③6호", url: "https://www.law.go.kr/법령/소득세법/제14조" },
+  { label: "가상자산 과세 2027년 시행 — 국세청", url: "https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=40370&cntntsId=238935" },
+  { label: "ISA 과세특례 — 조세특례제한법 제91조의18", url: "https://www.law.go.kr/법령/조세특례제한법/제91조의18" },
+  { label: "ISA 손익통산 · 국내주식 손실 차감 — 조세특례제한법 시행령 제93조의4", url: "https://www.law.go.kr/법령/조세특례제한법시행령/제93조의4" },
 ];
 
 /** 국내 상장시장 구분 — 매도 시 거래세율이 다르다 */
@@ -76,6 +80,8 @@ export interface TaxRuleSet {
   cryptoDeduction: Sourced<number>;
   /** 가상자산 세율 (지방소득세 포함) */
   cryptoTaxRate: Sourced<number>;
+  /** 금융소득(이자·배당) 종합과세 기준금액 (원/년) — 이 금액 "이하"는 분리과세로 끝난다 */
+  financialIncomeThreshold: Sourced<number>;
   isa: IsaRules;
 }
 
@@ -93,11 +99,12 @@ export const RULES_2026: TaxRuleSet = {
   krDividendTaxRate: enacted(0.154, "배당소득세 14% + 지방소득세 1.4%"),
   overseasCapitalGainDeduction: enacted(2_500_000, "해외주식 양도소득 기본공제 연 250만원"),
   overseasCapitalGainTaxRate: enacted(0.22, "양도소득세 20% + 지방소득세 2%"),
-  cryptoTaxStartYear: enacted(2027, "가상자산 과세 2027년 시행으로 유예"),
-  cryptoDeduction: proposed(2_500_000, "시행 시 기본공제 연 250만원 예정"),
-  cryptoTaxRate: proposed(0.22, "시행 시 20% + 지방소득세 2% 예정"),
+  cryptoTaxStartYear: enacted(2027, "2027년 1월 1일 이후 양도분부터 과세 (2024.12 개정으로 유예)"),
+  cryptoDeduction: enacted(2_500_000, "기본공제 연 250만원 (소득세법 제64조의3, 2027년 시행)"),
+  cryptoTaxRate: enacted(0.22, "20% + 지방소득세 2% (2027년 시행)"),
+  financialIncomeThreshold: enacted(20_000_000, "이자·배당소득 합계 연 2,000만원 초과 시 종합과세 (이하는 분리과세)"),
   isa: {
-    annualContributionLimit: enacted(20_000_000, "연 2,000만원"),
+    annualContributionLimit: enacted(20_000_000, "연 2,000만원 (쓰지 않은 한도는 다음 해로 이월)"),
     totalContributionLimit: enacted(100_000_000, "총 1억원"),
     mandatoryHoldingYears: enacted(3, "의무보유 3년"),
     taxFreeLimitGeneral: enacted(2_000_000, "일반형 순이익 200만원까지 비과세"),
@@ -106,27 +113,7 @@ export const RULES_2026: TaxRuleSet = {
   },
 };
 
-/**
- * 발표된 ISA 개편안. 아직 확정 전이라 기본값이 아니다.
- * 화면에서 현행과 나란히 놓고 차이를 보게 하는 용도.
- */
-export const RULES_2026_ISA_REFORM: TaxRuleSet = {
-  ...RULES_2026,
-  id: "kr-2026-isa-reform",
-  label: "ISA 개편안 (미확정)",
-  status: "proposed",
-  effectiveFrom: "미정",
-  isa: {
-    annualContributionLimit: proposed(40_000_000, "연 4,000만원으로 확대 (발표, 확정 전)"),
-    totalContributionLimit: proposed(200_000_000, "총 2억원으로 확대 (발표, 확정 전)"),
-    mandatoryHoldingYears: enacted(3, "의무보유 3년 (변동 없음)"),
-    taxFreeLimitGeneral: proposed(5_000_000, "일반형 500만원으로 확대 (발표, 확정 전)"),
-    taxFreeLimitLowIncome: proposed(10_000_000, "서민형 1,000만원으로 확대 (발표, 확정 전)"),
-    separateTaxRate: enacted(0.099, "초과분 9.9% (변동 없음)"),
-  },
-};
-
-export const RULE_SETS = [RULES_2026, RULES_2026_ISA_REFORM] as const;
+export const RULE_SETS = [RULES_2026] as const;
 export const DEFAULT_RULE_SET_ID = RULES_2026.id;
 
 export function getRuleSet(id: string): TaxRuleSet {
@@ -147,7 +134,7 @@ export function proposedItems(rs: TaxRuleSet): string[] {
   };
   walk(rs.krSellTaxRate, "krSellTaxRate");
   walk(rs.isa, "isa");
-  for (const k of ["krDividendTaxRate", "overseasCapitalGainDeduction", "overseasCapitalGainTaxRate", "cryptoTaxStartYear", "cryptoDeduction", "cryptoTaxRate"] as const) {
+  for (const k of ["krDividendTaxRate", "overseasCapitalGainDeduction", "overseasCapitalGainTaxRate", "cryptoTaxStartYear", "cryptoDeduction", "cryptoTaxRate", "financialIncomeThreshold"] as const) {
     walk(rs[k], k);
   }
   return out;

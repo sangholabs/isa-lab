@@ -19,10 +19,10 @@ import type { PortfolioState } from "@/lib/portfolio/types";
 import type { Quote, QuoteResult } from "@/lib/market/types";
 import { marketState, sinceLabel } from "@/lib/market/marketState";
 import { useUpbitStream } from "@/lib/market/useUpbitStream";
-import { DISCLAIMER, RULE_SETS, getRuleSet } from "@/lib/tax/rules";
-import { checkContribution, holdingStatus } from "@/lib/tax/isa";
-import { compareIsa } from "@/lib/tax/engine";
-import { isIsa } from "@/lib/tax/types";
+import { DEFAULT_RULE_SET_ID, DISCLAIMER, RULE_SETS, getRuleSet } from "@isa-lab/tax-engine/rules";
+import { checkContribution, holdingStatus } from "@isa-lab/tax-engine/isa";
+import { compareIsa } from "@isa-lab/tax-engine/engine";
+import { isIsa } from "@isa-lab/tax-engine/types";
 
 const store = getStore();
 const YEAR = new Date().getFullYear();
@@ -62,7 +62,7 @@ export default function Page() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const rules = getRuleSet(state?.ruleSetId ?? "kr-2026");
+  const rules = getRuleSet(state?.ruleSetId ?? DEFAULT_RULE_SET_ID);
   const account = state?.accounts.find((a) => a.id === accountId) ?? null;
 
   const trackedIds = useMemo(() => {
@@ -172,7 +172,7 @@ export default function Page() {
   const dividendIncome = realizedRows
     .filter((r) => r.kind === "kr_etf_other" && r.amount > 0)
     .reduce((a, r) => a + r.amount, 0);
-  const fiWarn = financialIncomeWarning(isIsa(account.type) ? 0 : dividendIncome);
+  const fiWarn = financialIncomeWarning(isIsa(account.type) ? 0 : dividendIncome, rules);
 
   const overseasRealized = realizedRows
     .filter((r) => r.kind === "overseas_stock")
@@ -269,6 +269,7 @@ export default function Page() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {RULE_SETS.length > 1 && (
           <select
             value={state.ruleSetId}
             onChange={(e) => setState((s) => (s ? { ...s, ruleSetId: e.target.value } : s))}
@@ -280,6 +281,7 @@ export default function Page() {
               </option>
             ))}
           </select>
+          )}
           <button
             onClick={() => setState((s) => (s ? demoState(s) : s))}
             className="rounded-lg border border-accent/50 bg-accent/10 px-2.5 py-1.5 text-[12px] text-accent hover:bg-accent/20"

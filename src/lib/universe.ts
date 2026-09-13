@@ -1,4 +1,6 @@
 import type { Asset } from "@/lib/portfolio/types";
+import { DEFAULT_RULE_SET_ID, getRuleSet } from "@isa-lab/tax-engine/rules";
+import { rate, wonShort } from "@/lib/format";
 
 /**
  * 기본 종목 목록.
@@ -19,13 +21,13 @@ export const UNIVERSE: Asset[] = [
   { id: "kr:069500", kind: "kr_etf_equity", symbol: "069500.KS", name: "KODEX 200", currency: "KRW", krMarket: "KOSPI" },
   { id: "kr:229200", kind: "kr_etf_equity", symbol: "229200.KS", name: "KODEX 코스닥150", currency: "KRW", krMarket: "KOSPI" },
 
-  // 국내상장 해외·채권 ETF — 매매차익이 배당소득 15.4%. ISA의 절세가 여기서 나온다.
+  // 국내상장 해외·채권 ETF — 매매차익이 배당소득으로 과세된다. ISA의 절세가 여기서 나온다.
   { id: "kr:360750", kind: "kr_etf_other", symbol: "360750.KS", name: "TIGER 미국S&P500", currency: "KRW", krMarket: "KOSPI" },
   { id: "kr:379800", kind: "kr_etf_other", symbol: "379800.KS", name: "KODEX 미국S&P500", currency: "KRW", krMarket: "KOSPI" },
   { id: "kr:133690", kind: "kr_etf_other", symbol: "133690.KS", name: "TIGER 미국나스닥100", currency: "KRW", krMarket: "KOSPI" },
   { id: "kr:305080", kind: "kr_etf_other", symbol: "305080.KS", name: "TIGER 미국채10년선물", currency: "KRW", krMarket: "KOSPI" },
 
-  // 해외 상장 — 양도소득세 22%, ISA에는 담기지 않는다
+  // 해외 상장 — 양도소득세, ISA에는 담기지 않는다
   { id: "us:AAPL", kind: "overseas_stock", symbol: "AAPL", name: "Apple", currency: "USD" },
   { id: "us:MSFT", kind: "overseas_stock", symbol: "MSFT", name: "Microsoft", currency: "USD" },
   { id: "us:NVDA", kind: "overseas_stock", symbol: "NVDA", name: "NVIDIA", currency: "USD" },
@@ -48,13 +50,18 @@ export const KIND_LABEL: Record<Asset["kind"], string> = {
   crypto: "가상자산",
 };
 
-/** 과세가 어떻게 되는지 한 줄 설명 — 화면에 배지로 붙인다 */
+// ponytail: 기본 룰셋 기준 문구. 웹에서 룰셋을 고를 수 있게 되면(RULE_SETS가 둘 이상) 선택한 룰셋을 받는 함수로
+const R = getRuleSet(DEFAULT_RULE_SET_ID);
+const { KOSPI, KOSDAQ } = R.krSellTaxRate;
+const krSell = KOSPI.value === KOSDAQ.value ? rate(KOSPI.value) : `코스피 ${rate(KOSPI.value)}·코스닥 ${rate(KOSDAQ.value)}`;
+
+/** 과세가 어떻게 되는지 한 줄 설명 — 화면에 배지로 붙인다. 숫자는 룰셋에서 읽는다 */
 export const KIND_TAX_HINT: Record<Asset["kind"], string> = {
-  kr_stock: "매매차익 비과세 · 매도 시 거래세 0.20%",
+  kr_stock: `매매차익 비과세 · 매도 시 거래세 ${krSell}`,
   kr_etf_equity: "매매차익 비과세 · 거래세 면제",
-  kr_etf_other: "매매차익 배당소득 15.4% · 손익통산 불가",
-  overseas_stock: "양도세 22% · 연 250만원 공제 · ISA 불가",
-  crypto: "2027년부터 과세 · ISA 불가",
+  kr_etf_other: `매매차익 배당소득 ${rate(R.krDividendTaxRate.value)} · 손익통산 불가`,
+  overseas_stock: `양도세 ${rate(R.overseasCapitalGainTaxRate.value)} · 연 ${wonShort(R.overseasCapitalGainDeduction.value)} 공제 · ISA 불가`,
+  crypto: `${R.cryptoTaxStartYear.value}년부터 과세 · ISA 불가`,
 };
 
 export const DEFAULT_WATCHLIST = [

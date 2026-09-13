@@ -2,7 +2,7 @@
 
 import { Badge, Panel } from "./ui";
 import { won } from "@/lib/format";
-import type { AssetKind, TaxResult } from "@/lib/tax/types";
+import type { AssetKind, TaxResult } from "@isa-lab/tax-engine/types";
 import { KIND_LABEL } from "@/lib/universe";
 
 export function TaxCompare({

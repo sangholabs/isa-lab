@@ -5,8 +5,8 @@ import { Badge, Empty, Modal, Panel } from "./ui";
 import { ResearchVerdict } from "./ResearchVerdict";
 import { num, won } from "@/lib/format";
 import { KIND_LABEL, UNIVERSE } from "@/lib/universe";
-import type { TaxRuleSet } from "@/lib/tax/rules";
-import type { AssetKind } from "@/lib/tax/types";
+import type { TaxRuleSet } from "@isa-lab/tax-engine/rules";
+import type { AssetKind } from "@isa-lab/tax-engine/types";
 import type { FeeSettings } from "@/lib/portfolio/types";
 import {
   PROVIDERS,

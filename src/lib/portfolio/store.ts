@@ -1,6 +1,6 @@
 import type { PortfolioState } from "./types";
-import { DEFAULT_RULE_SET_ID } from "@/lib/tax/rules";
-import { DEFAULT_FEES } from "@/lib/tax/engine";
+import { DEFAULT_RULE_SET_ID } from "@isa-lab/tax-engine/rules";
+import { DEFAULT_FEES } from "@isa-lab/tax-engine/engine";
 import { DEFAULT_WATCHLIST } from "@/lib/universe";
 
 const KEY = "isa-lab:state:v1";

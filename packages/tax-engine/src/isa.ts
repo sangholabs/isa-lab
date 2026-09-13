@@ -97,11 +97,17 @@ export function holdingStatus(params: {
 }): HoldingStatus {
   const { rules, openedAt, now } = params;
   const required = rules.isa.mandatoryHoldingYears.value;
+  // 「3년이 되는 날」 전에 해지하면 중도해지다. 개월 수만 세면 그 달 1일부터 충족으로 보여 최대 30일 이르다
+  const due = new Date(openedAt);
+  due.setFullYear(due.getFullYear() + required);
+  const satisfied = now >= due;
   const months =
-    (now.getFullYear() - openedAt.getFullYear()) * 12 + (now.getMonth() - openedAt.getMonth());
-  const monthsLeft = Math.max(0, required * 12 - months);
+    (now.getFullYear() - openedAt.getFullYear()) * 12 +
+    (now.getMonth() - openedAt.getMonth()) -
+    (now.getDate() < openedAt.getDate() ? 1 : 0);
+  const monthsLeft = satisfied ? 0 : Math.max(1, required * 12 - months);
   return {
-    satisfied: monthsLeft === 0,
+    satisfied,
     yearsHeld: months / 12,
     requiredYears: required,
     monthsLeft,

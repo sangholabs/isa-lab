@@ -1,7 +1,7 @@
-import { computeAnnualTax, computeTradeCost, type FeeConfig } from "@/lib/tax/engine";
-import type { TaxRuleSet } from "@/lib/tax/rules";
-import type { AssetKind } from "@/lib/tax/types";
-import { ISA_ELIGIBLE } from "@/lib/tax/types";
+import { computeAnnualTax, computeTradeCost, type FeeConfig } from "@isa-lab/tax-engine/engine";
+import type { TaxRuleSet } from "@isa-lab/tax-engine/rules";
+import type { AssetKind } from "@isa-lab/tax-engine/types";
+import { ISA_ELIGIBLE } from "@isa-lab/tax-engine/types";
 
 /**
  * 세후 시나리오.
@@ -94,7 +94,7 @@ export function buildScenario(params: {
   });
 
   const note = isaEligible
-    ? "매수·매도 수수료와 세금을 모두 뺀 금액입니다. ISA는 일반형 비과세 한도 기준이고, 의무보유 3년을 채웠다고 가정했습니다."
+    ? `매수·매도 수수료와 세금을 모두 뺀 금액입니다. ISA는 일반형 비과세 한도 기준이고, 의무보유 ${rules.isa.mandatoryHoldingYears.value}년을 채웠다고 가정했습니다.`
     : "이 자산은 ISA에 담을 수 없어 일반계좌 기준만 계산했습니다.";
 
   return { investKrw, isaEligible, rows, note };

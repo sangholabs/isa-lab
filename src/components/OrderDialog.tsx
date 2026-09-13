@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import { Badge, Modal, Term } from "./ui";
 import { num, won } from "@/lib/format";
 import { KIND_LABEL, KIND_TAX_HINT } from "@/lib/universe";
-import { computeTradeCost } from "@/lib/tax/engine";
-import type { TaxRuleSet } from "@/lib/tax/rules";
+import { computeTradeCost } from "@isa-lab/tax-engine/engine";
+import type { TaxRuleSet } from "@isa-lab/tax-engine/rules";
 import type { Asset, FeeSettings, Holding } from "@/lib/portfolio/types";
 
 export interface OrderIntent {
