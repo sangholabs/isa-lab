@@ -11,6 +11,8 @@ import { DEMO_ENTRIES, KINDS, STORAGE_KEY, initialState, restore, type AppState 
 
 type Screen = "input" | "result" | "sources";
 const WEB_URL = "https://isa-lab.vercel.app";
+const SUPPORT_URL = "https://github.com/sangholabs/isa-lab/issues";
+const open = (url: string) => { Linking.openURL(encodeURI(url)).catch(() => {}); }; // 법령 URL에 한글이 들어 있다
 
 export default function App() {
   const [state, setState] = useState<AppState>(initialState);
@@ -49,10 +51,10 @@ export default function App() {
         <StatusBar style="dark" />
         <View style={s.header}>
           {screen !== "input" ? (
-            <Pressable onPress={back} hitSlop={12}><Text style={s.link}>‹ 뒤로</Text></Pressable>
+            <Pressable role="button" aria-label="뒤로" onPress={back} hitSlop={12}><Text style={s.link}>‹ 뒤로</Text></Pressable>
           ) : <Text style={s.brand}>덜내</Text>}
-          <Text style={s.title}>{screen === "input" ? "올해 실현손익" : screen === "result" ? "세금 비교" : "근거"}</Text>
-          <Pressable onPress={() => setSettingsOpen(true)} hitSlop={12}><Text style={s.link}>설정</Text></Pressable>
+          <Text style={s.title} role="heading">{screen === "input" ? "올해 실현손익" : screen === "result" ? "세금 비교" : "근거"}</Text>
+          <Pressable role="button" onPress={() => setSettingsOpen(true)} hitSlop={12}><Text style={s.link}>설정</Text></Pressable>
         </View>
 
         {screen === "input" && (
@@ -64,21 +66,22 @@ export default function App() {
                   <Text style={s.cardTitle}>{label}</Text>
                   <Text style={s.hint}>{hint(rules)}</Text>
                   <View style={s.row}>
-                    <AmountField label="이익" value={state.entries[kind].profit} onChange={(v) => setEntry(kind, "profit", v)} />
-                    <AmountField label="손실" value={state.entries[kind].loss} onChange={(v) => setEntry(kind, "loss", v)} />
+                    <AmountField label="이익" name={label} value={state.entries[kind].profit} onChange={(v) => setEntry(kind, "profit", v)} />
+                    <AmountField label="손실" name={label} value={state.entries[kind].loss} onChange={(v) => setEntry(kind, "loss", v)} />
                   </View>
                 </View>
               ))}
-              <Pressable style={s.primary} onPress={() => setScreen("result")}><Text style={s.primaryText}>세금 비교하기</Text></Pressable>
-              <Pressable style={s.ghost} onPress={showDemo}><Text style={s.ghostText}>예시로 보기</Text></Pressable>
-              <Pressable style={s.ghost} onPress={() => setState({ ...state, entries: initialState.entries })}><Text style={s.ghostText}>지우기</Text></Pressable>
+              <Pressable role="button" style={s.primary} onPress={() => setScreen("result")}><Text style={s.primaryText}>세금 비교하기</Text></Pressable>
+              <Pressable role="button" style={s.ghost} onPress={showDemo}><Text style={s.ghostText}>예시로 보기</Text></Pressable>
+              <Pressable role="button" style={s.ghost} onPress={() => setState({ ...state, entries: initialState.entries })}><Text style={s.ghostText}>지우기</Text></Pressable>
             </ScrollView>
           </KeyboardAvoidingView>
         )}
 
         {screen === "result" && (
           <ScrollView contentContainerStyle={s.body}>
-            <Segmented options={RULE_SETS} value={state.ruleSetId} onChange={(id) => setState({ ...state, ruleSetId: id })} />
+            {/* 룰셋이 하나뿐이면 고를 게 없다 (ADR-0006) */}
+            {RULE_SETS.length > 1 && <Segmented options={RULE_SETS} value={state.ruleSetId} onChange={(id) => setState({ ...state, ruleSetId: id })} />}
             <View style={[s.card, s.hero]}>
               <Text style={s.heroLabel}>ISA로 아끼는 세금 · {state.year}년 · {state.isaType === "isa_general" ? "일반형" : "서민형"}</Text>
               <Text style={s.heroNumber}>{won(outcome.comparison.saved)}</Text>
@@ -87,9 +90,9 @@ export default function App() {
                 <Stat label="ISA" value={won(outcome.comparison.isa.totalTax)} />
               </View>
               {!state.holdingSatisfied && <Text style={s.warn}>의무보유 {rules.isa.mandatoryHoldingYears.value}년을 채우지 않으면 ISA도 일반계좌와 똑같이 과세됩니다.</Text>}
-              {rules.status === "proposed" && <Text style={s.warn}>개편안은 발표만 됐고 확정 전입니다. 현행 기준과 나란히 보세요.</Text>}
+              {rules.status === "proposed" && <Text style={s.warn}>이 룰셋은 발표만 됐고 확정 전입니다. 현행 기준과 나란히 보세요.</Text>}
             </View>
-            {outcome.realized.length === 0 && <Pressable style={s.ghost} onPress={showDemo}><Text style={s.ghostText}>입력한 손익이 없습니다 — 예시로 보기</Text></Pressable>}
+            {outcome.realized.length === 0 && <Pressable role="button" style={s.ghost} onPress={showDemo}><Text style={s.ghostText}>입력한 손익이 없습니다 — 예시로 보기</Text></Pressable>}
             <Breakdown title="일반계좌라면" result={outcome.comparison.regular} />
             <Breakdown title="ISA라면" result={outcome.comparison.isa} />
             {outcome.outsideIsa && (
@@ -99,8 +102,8 @@ export default function App() {
                 {outcome.outsideIsa.lines.map((l, i) => <Line key={i} l={l} />)}
               </View>
             )}
-            <Pressable style={s.primary} onPress={() => setScreen("sources")}><Text style={s.primaryText}>왜 이 세금인지 — 근거 보기</Text></Pressable>
-            <Pressable style={s.ghost} onPress={() => setScreen("input")}><Text style={s.ghostText}>입력 고치기</Text></Pressable>
+            <Pressable role="button" style={s.primary} onPress={() => setScreen("sources")}><Text style={s.primaryText}>왜 이 세금인지 — 근거 보기</Text></Pressable>
+            <Pressable role="button" style={s.ghost} onPress={() => setScreen("input")}><Text style={s.ghostText}>입력 고치기</Text></Pressable>
           </ScrollView>
         )}
 
@@ -125,13 +128,13 @@ export default function App() {
             <View style={s.card}>
               <Text style={s.cardTitle}>출처</Text>
               {SOURCES.map((src) => (
-                <Pressable key={src.url} onPress={() => Linking.openURL(src.url)} style={s.srcRow}><Text style={s.link}>{src.label}</Text></Pressable>
+                <Pressable key={src.url} role="link" onPress={() => open(src.url)} style={s.srcRow}><Text style={s.link}>{src.label}</Text></Pressable>
               ))}
             </View>
             <View style={s.card}>
               <Text style={s.cardTitle}>알려드립니다</Text>
               <Text style={s.hint}>이 앱은 공개된 자료를 정리해 계산하는 도구이며 세무 검토를 받은 것이 아닙니다. 투자 권유가 아니며, 실제 신고·납부는 국세청·증권사 기준을 따르세요. 입력값은 이 기기에만 저장되고 서버로 전송되지 않습니다.</Text>
-              <Pressable onPress={() => Linking.openURL(WEB_URL)} style={s.srcRow}><Text style={s.link}>웹에서 종목 단위로 굴려보기 → {WEB_URL}</Text></Pressable>
+              <Pressable role="link" onPress={() => open(WEB_URL)} style={s.srcRow}><Text style={s.link}>웹에서 종목 단위로 굴려보기 → {WEB_URL}</Text></Pressable>
             </View>
           </ScrollView>
         )}
@@ -140,8 +143,8 @@ export default function App() {
           <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
             <View style={s.header}>
               <View style={{ width: 48 }} />
-              <Text style={s.title}>설정</Text>
-              <Pressable onPress={() => setSettingsOpen(false)} hitSlop={12}><Text style={s.link}>닫기</Text></Pressable>
+              <Text style={s.title} role="heading">설정</Text>
+              <Pressable role="button" onPress={() => setSettingsOpen(false)} hitSlop={12}><Text style={s.link}>닫기</Text></Pressable>
             </View>
             <ScrollView contentContainerStyle={s.body}>
               <Text style={s.cardTitle}>ISA 유형</Text>
@@ -149,14 +152,24 @@ export default function App() {
               <Segmented options={[{ id: "isa_general", label: "일반형" }, { id: "isa_low_income", label: "서민형" }]} value={state.isaType} onChange={(id) => setState({ ...state, isaType: id as AppState["isaType"] })} />
               <Text style={s.cardTitle}>정산 연도</Text>
               <Segmented options={[2026, 2027].map((y) => ({ id: String(y), label: y === rules.cryptoTaxStartYear.value ? `${y} (코인 과세 시작)` : String(y) }))} value={String(state.year)} onChange={(id) => setState({ ...state, year: Number(id) as AppState["year"] })} />
-              <Text style={s.cardTitle}>룰셋</Text>
-              <Segmented options={RULE_SETS} value={state.ruleSetId} onChange={(id) => setState({ ...state, ruleSetId: id })} />
+              {RULE_SETS.length > 1 && (
+                <>
+                  <Text style={s.cardTitle}>룰셋</Text>
+                  <Segmented options={RULE_SETS} value={state.ruleSetId} onChange={(id) => setState({ ...state, ruleSetId: id })} />
+                </>
+              )}
               <View style={[s.row, { alignItems: "center", justifyContent: "space-between", marginTop: 16 }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.cardTitle}>의무보유 {rules.isa.mandatoryHoldingYears.value}년을 채울 예정</Text>
                   <Text style={s.hint}>중간에 해지하면 ISA 혜택이 사라집니다</Text>
                 </View>
-                <Switch value={state.holdingSatisfied} onValueChange={(v) => setState({ ...state, holdingSatisfied: v })} />
+                <Switch accessibilityLabel={`의무보유 ${rules.isa.mandatoryHoldingYears.value}년을 채울 예정`} value={state.holdingSatisfied} onValueChange={(v) => setState({ ...state, holdingSatisfied: v })} />
+              </View>
+              <View style={[s.card, { marginTop: 16 }]}>
+                <Text style={s.cardTitle}>앱 정보</Text>
+                <Text style={s.hint}>입력값은 이 기기에만 저장되고 어디로도 전송되지 않습니다.</Text>
+                <Pressable role="link" onPress={() => open(`${WEB_URL}/privacy`)} style={s.srcRow}><Text style={s.link}>개인정보처리방침</Text></Pressable>
+                <Pressable role="link" onPress={() => open(SUPPORT_URL)} style={s.srcRow}><Text style={s.link}>문의·오류 제보</Text></Pressable>
               </View>
             </ScrollView>
           </SafeAreaView>
@@ -170,14 +183,14 @@ export default function App() {
   }
 }
 
-function AmountField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function AmountField({ label, name, value, onChange }: { label: string; name: string; value: string; onChange: (v: string) => void }) {
   // 숫자와 소수점 하나만 받는다. "1.2.3"을 통과시키면 0으로 계산돼 조용히 빠진다
   const accept = (t: string) => { const v = t.replace(/[^\d.]/g, ""); if (/^\d*\.?\d*$/.test(v)) onChange(v); };
   return (
     <View style={s.field}>
       <Text style={s.fieldLabel}>{label}</Text>
       <View style={s.inputWrap}>
-        <TextInput style={s.input} value={value} onChangeText={accept} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#9a9a9a" maxLength={9} />
+        <TextInput style={s.input} aria-label={`${name} ${label}, 만원`} value={value} onChangeText={accept} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#9a9a9a" maxLength={9} />
         <Text style={s.unit}>만원</Text>
       </View>
     </View>
@@ -188,7 +201,7 @@ function Segmented({ options, value, onChange }: { options: readonly { id: strin
   return (
     <View style={s.seg}>
       {options.map((o) => (
-        <Pressable key={o.id} onPress={() => onChange(o.id)} style={[s.segItem, o.id === value && s.segOn]}>
+        <Pressable key={o.id} role="button" aria-selected={o.id === value} onPress={() => onChange(o.id)} style={[s.segItem, o.id === value && s.segOn]}>
           <Text style={[s.segText, o.id === value && s.segTextOn]}>{o.label}</Text>
         </Pressable>
       ))}
@@ -250,7 +263,7 @@ const s = StyleSheet.create({
   unit: { fontSize: 13, color: "#6b6a66", marginLeft: 6 },
   primary: { backgroundColor: "#1f4e9c", borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
   primaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  ghost: { paddingVertical: 10, alignItems: "center" },
+  ghost: { paddingVertical: 12, alignItems: "center" },
   ghostText: { color: "#1f4e9c", fontSize: 15, fontWeight: "600" },
   hero: { alignItems: "center", gap: 8 },
   heroLabel: { fontSize: 13, color: "#6b6a66" },
@@ -263,7 +276,7 @@ const s = StyleSheet.create({
   lineTax: { fontSize: 15, fontWeight: "700", color: "#1d1d1b" },
   assume: { fontSize: 12, color: "#6b6a66", marginTop: 4 },
   seg: { flexDirection: "row", backgroundColor: "#ebe9e3", borderRadius: 10, padding: 3, marginBottom: 8 },
-  segItem: { flex: 1, paddingVertical: 9, alignItems: "center", borderRadius: 8 },
+  segItem: { flex: 1, paddingVertical: 11, alignItems: "center", borderRadius: 8 },
   segOn: { backgroundColor: "#fff" },
   segText: { fontSize: 13, color: "#6b6a66", fontWeight: "600" },
   segTextOn: { color: "#1d1d1b" },

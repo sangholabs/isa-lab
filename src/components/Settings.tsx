@@ -187,9 +187,11 @@ export function Settings({
             ))}
           </ul>
 
-          <p className="mt-3 text-[11px] leading-relaxed text-muted">
-            룰셋은 화면 위 선택창에서 바꿀 수 있습니다 ({RULE_SETS.map((r) => r.label).join(" / ")}).
-          </p>
+          {RULE_SETS.length > 1 && (
+            <p className="mt-3 text-[11px] leading-relaxed text-muted">
+              룰셋은 화면 위 선택창에서 바꿀 수 있습니다 ({RULE_SETS.map((r) => r.label).join(" / ")}).
+            </p>
+          )}
         </>
       )}
     </Modal>

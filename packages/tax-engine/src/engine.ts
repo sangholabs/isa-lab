@@ -146,6 +146,7 @@ function taxRegular(input: AnnualTaxInput): TaxResult {
       tax: otherEtfGain * rate,
       note: "배당소득으로 과세되어 손실과 통산되지 않습니다",
     });
+    assumptions.push("해외·채권 ETF는 매매차익 전액을 과세표준으로 봤습니다. 실제로는 과세표준기준가격 상승분이 더 작으면 그 금액에 과세합니다.");
   }
 
   // 3) 해외주식 — 통산 후 기본공제
@@ -200,14 +201,19 @@ function taxRegular(input: AnnualTaxInput): TaxResult {
  *      국내상장 해외ETF 손실도 여기서는 이익과 상계된다.
  *  (2) 통산한 순이익에서 비과세 한도를 빼고, 남은 금액에만 9.9%가 붙는다.
  *
- * 국내주식·국내주식형 ETF 매매차익은 일반계좌에서도 원래 비과세라
- * 통산 대상에서 뺐다. (아래 assumptions에 명시)
+ * 국내 상장주식은 매매이익이 과세대상(이자·배당소득)이 아니라 더하지 않지만, 매매손실은
+ * 순이익에서 뺀다 (조특령 제93조의4⑨, 2025년부터, 대주주 제외). 국내주식형 ETF 손실은 빼지 않는다 (같은 항 2호).
+ * ponytail: 종목별 손실을 따로 셀지는 해석이 갈린다. 입력이 자산군 합계라 국내주식끼리 합친 순손실만 뺀다.
+ * 법은 계좌를 해지할 때 가입 기간 전체를 한 번 정산한다 (조특법 제91조의18⑤).
+ * 여기서는 입력한 손익이 계좌의 전부라고 본다. (아래 assumptions에 명시)
  */
 function taxIsa(input: AnnualTaxInput): TaxResult {
   const { rules, realized, account } = input;
   const isa = rules.isa;
   const assumptions: string[] = [
-    "ISA 계좌 안의 과세대상 손익만 통산했습니다. 국내주식·국내주식형 ETF 매매차익은 일반계좌에서도 비과세이므로 통산 대상에서 제외했습니다.",
+    "국내 상장주식은 이익과 손실을 합쳐 순손실이 남을 때만 그 금액을 ISA 순이익에서 뺐습니다(대주주 제외). 순이익이면 원래 비과세라 더하지 않습니다. 국내주식형 ETF 손익은 통산하지 않습니다.",
+    "ISA는 해지할 때 가입 기간 전체의 손익을 한 번 정산합니다. 입력한 손익이 계좌의 전부라고 가정했습니다.",
+    "매매차익만 계산했습니다. 계좌에서 받은 배당·분배금·이자는 넣지 않았습니다.",
   ];
 
   if (input.isaHoldingSatisfied === false) {
@@ -221,7 +227,8 @@ function taxIsa(input: AnnualTaxInput): TaxResult {
     };
   }
 
-  const taxableNet = sum(pick(realized, ["kr_etf_other"]));
+  const krStockLoss = Math.min(0, sum(pick(realized, ["kr_stock"])));
+  const taxableNet = sum(pick(realized, ["kr_etf_other"])) + krStockLoss;
   const exemptLimit =
     account === "isa_low_income" ? isa.taxFreeLimitLowIncome.value : isa.taxFreeLimitGeneral.value;
   const overLimit = Math.max(0, taxableNet - exemptLimit);
@@ -230,13 +237,15 @@ function taxIsa(input: AnnualTaxInput): TaxResult {
   const lines: TaxBreakdownLine[] = [];
 
   const krExempt = sum(pick(realized, ["kr_stock", "kr_etf_equity"]));
-  if (krExempt !== 0) {
+  if (krExempt !== 0 || krStockLoss < 0) {
     lines.push({
       label: "국내주식·국내주식형 ETF 매매차익",
       taxableBase: 0,
       rate: 0,
       tax: 0,
-      note: "원래 비과세 — ISA 여부와 무관",
+      note: krStockLoss < 0
+        ? `매매이익은 비과세 · 국내주식 순손실 ${Math.round(-krStockLoss).toLocaleString("ko-KR")}원은 순이익에서 뺐습니다`
+        : "원래 비과세 — ISA 여부와 무관",
     });
   }
 

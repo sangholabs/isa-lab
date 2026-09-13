@@ -269,6 +269,7 @@ export default function Page() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {RULE_SETS.length > 1 && (
           <select
             value={state.ruleSetId}
             onChange={(e) => setState((s) => (s ? { ...s, ruleSetId: e.target.value } : s))}
@@ -280,6 +281,7 @@ export default function Page() {
               </option>
             ))}
           </select>
+          )}
           <button
             onClick={() => setState((s) => (s ? demoState(s) : s))}
             className="rounded-lg border border-accent/50 bg-accent/10 px-2.5 py-1.5 text-[12px] text-accent hover:bg-accent/20"
