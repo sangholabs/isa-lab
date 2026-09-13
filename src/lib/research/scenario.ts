@@ -1,7 +1,7 @@
-import { computeAnnualTax, computeTradeCost, type FeeConfig } from "@/lib/tax/engine";
-import type { TaxRuleSet } from "@/lib/tax/rules";
-import type { AssetKind } from "@/lib/tax/types";
-import { ISA_ELIGIBLE } from "@/lib/tax/types";
+import { computeAnnualTax, computeTradeCost, type FeeConfig } from "@isa-lab/tax-engine/engine";
+import type { TaxRuleSet } from "@isa-lab/tax-engine/rules";
+import type { AssetKind } from "@isa-lab/tax-engine/types";
+import { ISA_ELIGIBLE } from "@isa-lab/tax-engine/types";
 
 /**
  * 세후 시나리오.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RULES_2026 } from "@/lib/tax/rules";
+import { RULES_2026 } from "@isa-lab/tax-engine/rules";
 import { buildHoldings, deposit, placeOrder } from "@/lib/portfolio/engine";
 import { computeMetrics, financialIncomeWarning } from "@/lib/portfolio/metrics";
 import { marketState } from "@/lib/market/marketState";

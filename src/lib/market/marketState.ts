@@ -1,4 +1,4 @@
-import type { AssetKind } from "@/lib/tax/types";
+import type { AssetKind } from "@isa-lab/tax-engine/types";
 
 export type MarketPhase = "open" | "closed" | "always_open";
 

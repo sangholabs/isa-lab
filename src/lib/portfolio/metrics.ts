@@ -1,6 +1,6 @@
 import type { Account, Asset, Trade } from "./types";
 import { buildHoldings } from "./engine";
-import type { AssetKind } from "@/lib/tax/types";
+import type { AssetKind } from "@isa-lab/tax-engine/types";
 
 export interface PositionRow {
   asset: Asset;

@@ -1,7 +1,7 @@
-import { computeAnnualTax, computeTradeCost, DEFAULT_FEES, type FeeConfig } from "@/lib/tax/engine";
-import { checkContribution, checkIsaEligibility } from "@/lib/tax/isa";
-import type { TaxRuleSet } from "@/lib/tax/rules";
-import { isIsa } from "@/lib/tax/types";
+import { computeAnnualTax, computeTradeCost, DEFAULT_FEES, type FeeConfig } from "@isa-lab/tax-engine/engine";
+import { checkContribution, checkIsaEligibility } from "@isa-lab/tax-engine/isa";
+import type { TaxRuleSet } from "@isa-lab/tax-engine/rules";
+import { isIsa } from "@isa-lab/tax-engine/types";
 import type { Account, Asset, Holding, PortfolioState, Trade } from "./types";
 
 export interface OrderRequest {

@@ -19,10 +19,10 @@ import type { PortfolioState } from "@/lib/portfolio/types";
 import type { Quote, QuoteResult } from "@/lib/market/types";
 import { marketState, sinceLabel } from "@/lib/market/marketState";
 import { useUpbitStream } from "@/lib/market/useUpbitStream";
-import { DISCLAIMER, RULE_SETS, getRuleSet } from "@/lib/tax/rules";
-import { checkContribution, holdingStatus } from "@/lib/tax/isa";
-import { compareIsa } from "@/lib/tax/engine";
-import { isIsa } from "@/lib/tax/types";
+import { DISCLAIMER, RULE_SETS, getRuleSet } from "@isa-lab/tax-engine/rules";
+import { checkContribution, holdingStatus } from "@isa-lab/tax-engine/isa";
+import { compareIsa } from "@isa-lab/tax-engine/engine";
+import { isIsa } from "@isa-lab/tax-engine/types";
 
 const store = getStore();
 const YEAR = new Date().getFullYear();

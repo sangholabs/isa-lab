@@ -1,5 +1,5 @@
-import type { AccountType, AssetKind } from "@/lib/tax/types";
-import type { KrMarket } from "@/lib/tax/rules";
+import type { AccountType, AssetKind } from "@isa-lab/tax-engine/types";
+import type { KrMarket } from "@isa-lab/tax-engine/rules";
 
 export interface Asset {
   id: string;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DISCLAIMER, RULE_SETS, proposedItems } from "@/lib/tax/rules";
+import { DISCLAIMER, RULE_SETS, proposedItems } from "@isa-lab/tax-engine/rules";
 
 export async function GET() {
   return NextResponse.json({

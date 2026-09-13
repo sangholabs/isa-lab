@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { RULES_2026, RULES_2026_ISA_REFORM, proposedItems } from "@/lib/tax/rules";
-import { computeAnnualTax, compareIsa, computeTradeCost, DEFAULT_FEES } from "@/lib/tax/engine";
-import { checkContribution, checkIsaEligibility, holdingStatus } from "@/lib/tax/isa";
+import { RULES_2026, RULES_2026_ISA_REFORM, proposedItems } from "@isa-lab/tax-engine/rules";
+import { computeAnnualTax, compareIsa, computeTradeCost, DEFAULT_FEES } from "@isa-lab/tax-engine/engine";
+import { checkContribution, checkIsaEligibility, holdingStatus } from "@isa-lab/tax-engine/isa";
 import { buildConsensus, scoreAnalysis } from "@/lib/research/score";
 import { buildScenario } from "@/lib/research/scenario";
 

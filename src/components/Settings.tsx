@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Badge, Modal, Term } from "./ui";
-import { DEFAULT_FEES } from "@/lib/tax/engine";
-import { RULE_SETS, SOURCES, VERIFIED_AT, proposedItems, type TaxRuleSet } from "@/lib/tax/rules";
+import { DEFAULT_FEES } from "@isa-lab/tax-engine/engine";
+import { RULE_SETS, SOURCES, VERIFIED_AT, proposedItems, type TaxRuleSet } from "@isa-lab/tax-engine/rules";
 import type { FeeSettings } from "@/lib/portfolio/types";
 
 /**

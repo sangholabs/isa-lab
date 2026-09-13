@@ -1,0 +1,15 @@
+{
+  "name": "@isa-lab/tax-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ISA Lab 세금 엔진 — 웹(Next.js)과 앱(Expo)이 같은 코드를 쓴다. 의존성 없음, 빌드 없음(소스 그대로 소비)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./engine": "./src/engine.ts",
+    "./rules": "./src/rules.ts",
+    "./types": "./src/types.ts",
+    "./isa": "./src/isa.ts"
+  },
+  "sideEffects": false
+}

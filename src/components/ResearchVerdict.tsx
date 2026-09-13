@@ -7,8 +7,8 @@ import { buildConsensus, decisionChecklist, scoreAnalysis, type QualityScore } f
 import { buildScenario } from "@/lib/research/scenario";
 import { PROVIDER_MAP, type ProviderId, type ResearchResponse } from "@/lib/research/types";
 import { KIND_LABEL, KIND_TAX_HINT } from "@/lib/universe";
-import type { TaxRuleSet } from "@/lib/tax/rules";
-import type { AssetKind } from "@/lib/tax/types";
+import type { TaxRuleSet } from "@isa-lab/tax-engine/rules";
+import type { AssetKind } from "@isa-lab/tax-engine/types";
 import type { FeeSettings } from "@/lib/portfolio/types";
 
 export function ResearchVerdict({
