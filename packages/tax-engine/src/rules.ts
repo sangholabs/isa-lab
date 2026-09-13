@@ -36,6 +36,7 @@ export const SOURCES: { label: string; url: string }[] = [
   { label: "배당소득 원천징수 14% — 소득세법 제129조", url: "https://www.law.go.kr/법령/소득세법/제129조" },
   { label: "해외주식 양도소득 연 250만원 공제 — 소득세법 제103조", url: "https://www.law.go.kr/법령/소득세법/제103조" },
   { label: "해외주식 양도소득세율 20% — 소득세법 제104조", url: "https://www.law.go.kr/법령/소득세법/제104조" },
+  { label: "금융소득종합과세 기준 연 2,000만원 — 소득세법 제14조③6호", url: "https://www.law.go.kr/법령/소득세법/제14조" },
   { label: "가상자산 과세 2027년 시행 — 국세청", url: "https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=40370&cntntsId=238935" },
   { label: "ISA 과세특례 — 조세특례제한법 제91조의18", url: "https://www.law.go.kr/법령/조세특례제한법/제91조의18" },
   { label: "ISA 손익통산 · 국내주식 손실 차감 — 조세특례제한법 시행령 제93조의4", url: "https://www.law.go.kr/법령/조세특례제한법시행령/제93조의4" },
@@ -79,6 +80,8 @@ export interface TaxRuleSet {
   cryptoDeduction: Sourced<number>;
   /** 가상자산 세율 (지방소득세 포함) */
   cryptoTaxRate: Sourced<number>;
+  /** 금융소득(이자·배당) 종합과세 기준금액 (원/년) — 이 금액 "이하"는 분리과세로 끝난다 */
+  financialIncomeThreshold: Sourced<number>;
   isa: IsaRules;
 }
 
@@ -99,6 +102,7 @@ export const RULES_2026: TaxRuleSet = {
   cryptoTaxStartYear: enacted(2027, "2027년 1월 1일 이후 양도분부터 과세 (2024.12 개정으로 유예)"),
   cryptoDeduction: enacted(2_500_000, "기본공제 연 250만원 (소득세법 제64조의3, 2027년 시행)"),
   cryptoTaxRate: enacted(0.22, "20% + 지방소득세 2% (2027년 시행)"),
+  financialIncomeThreshold: enacted(20_000_000, "이자·배당소득 합계 연 2,000만원 초과 시 종합과세 (이하는 분리과세)"),
   isa: {
     annualContributionLimit: enacted(20_000_000, "연 2,000만원 (쓰지 않은 한도는 다음 해로 이월)"),
     totalContributionLimit: enacted(100_000_000, "총 1억원"),
@@ -130,7 +134,7 @@ export function proposedItems(rs: TaxRuleSet): string[] {
   };
   walk(rs.krSellTaxRate, "krSellTaxRate");
   walk(rs.isa, "isa");
-  for (const k of ["krDividendTaxRate", "overseasCapitalGainDeduction", "overseasCapitalGainTaxRate", "cryptoTaxStartYear", "cryptoDeduction", "cryptoTaxRate"] as const) {
+  for (const k of ["krDividendTaxRate", "overseasCapitalGainDeduction", "overseasCapitalGainTaxRate", "cryptoTaxStartYear", "cryptoDeduction", "cryptoTaxRate", "financialIncomeThreshold"] as const) {
     walk(rs[k], k);
   }
   return out;

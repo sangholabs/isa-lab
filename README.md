@@ -3,7 +3,7 @@
 **주식도 코인도 처음인 사람이, 계좌를 만들기 전에 먼저 굴려보는 곳.**
 국내주식 · 국내상장 ETF · 해외주식 · 코인을 한 화면에서 모의매매하고, ISA 계좌가 실제로 얼마를 아껴주는지 계산합니다.
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![tests](https://img.shields.io/badge/tests-73%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-green)
+![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![tests](https://img.shields.io/badge/tests-74%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-green)
 
 실거래 계좌와 연결되지 않습니다. 주문은 전부 가상이고, 시세만 실제 데이터입니다.
 **시세에는 API 키가 하나도 필요 없습니다** — 클론해서 `npm run dev` 하면 바로 돕니다.
@@ -222,7 +222,7 @@ npm run dev   # http://localhost:3000
 환경변수 없음. 포트폴리오와 API 키는 브라우저 `localStorage`에만 저장되고 서버로 가지 않습니다.
 
 ```bash
-npm test          # 세금·주문·성과·리서치 점수·앱 입력 테스트 73개
+npm test          # 세금·주문·성과·리서치 점수·앱 입력 테스트 74개
 npm run build     # 프로덕션 빌드
 ```
 
@@ -258,7 +258,7 @@ src/
       providers.ts          4개 제공사 어댑터 · JSON 파싱 · 키 redact
     glossary.ts             용어 사전 (툴팁)
   components/               UI
-tests/                      73 passing
+tests/                      74 passing
 ```
 
 세금·주문·성과 계산은 전부 순수 함수라 UI 없이 테스트됩니다.

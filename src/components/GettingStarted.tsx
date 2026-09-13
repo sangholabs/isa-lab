@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEFAULT_RULE_SET_ID, getRuleSet } from "@isa-lab/tax-engine/rules";
 import { Badge, Panel, Term } from "./ui";
 
 const KEY = "isa-lab:onboarding:v1";
+const R = getRuleSet(DEFAULT_RULE_SET_ID);
 
 interface Step {
   id: string;
@@ -89,7 +91,7 @@ const STEPS: Step[] = [
             큽니다. 홈택스 소득확인증명서가 필요합니다.
           </li>
           <li>
-            <Term k="의무보유기간">의무보유기간</Term>이 3년입니다. 만든 날부터 세는 것이니, 당장 넣을 돈이
+            <Term k="의무보유기간">의무보유기간</Term>이 {R.isa.mandatoryHoldingYears.value}년입니다. 만든 날부터 세는 것이니, 당장 넣을 돈이
             없더라도 <b>일찍 만들어 두는 것</b>이 유리합니다.
           </li>
         </ul>

@@ -94,7 +94,7 @@ export function buildScenario(params: {
   });
 
   const note = isaEligible
-    ? "매수·매도 수수료와 세금을 모두 뺀 금액입니다. ISA는 일반형 비과세 한도 기준이고, 의무보유 3년을 채웠다고 가정했습니다."
+    ? `매수·매도 수수료와 세금을 모두 뺀 금액입니다. ISA는 일반형 비과세 한도 기준이고, 의무보유 ${rules.isa.mandatoryHoldingYears.value}년을 채웠다고 가정했습니다.`
     : "이 자산은 ISA에 담을 수 없어 일반계좌 기준만 계산했습니다.";
 
   return { investKrw, isaEligible, rows, note };

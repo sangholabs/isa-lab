@@ -156,10 +156,13 @@ describe("성과 지표", () => {
     expect(m.valueKrw).toBe(0);
   });
 
-  it("금융소득종합과세 경고는 2,000만원에서 넘어간다", () => {
-    expect(financialIncomeWarning(19_999_999).level).toBe("near");
-    expect(financialIncomeWarning(20_000_000).level).toBe("over");
-    expect(financialIncomeWarning(1_000_000).level).toBe("none");
+  it("금융소득종합과세 경고는 2,000만원을 넘어야 뜬다 — 딱 2,000만원은 분리과세(소득세법 제14조③6호 「이하」)", () => {
+    expect(financialIncomeWarning(19_999_999, RULES_2026).level).toBe("near");
+    expect(financialIncomeWarning(20_000_000, RULES_2026).level).toBe("near");
+    const over = financialIncomeWarning(20_000_001, RULES_2026);
+    expect(over.level).toBe("over");
+    expect(over.message).toContain("2,000만원");
+    expect(financialIncomeWarning(1_000_000, RULES_2026).level).toBe("none");
   });
 });
 

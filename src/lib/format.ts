@@ -11,6 +11,9 @@ export const wonShort = (n: number) => {
 export const pct = (n: number | null, digits = 2) =>
   n == null ? "—" : `${n > 0 ? "+" : ""}${n.toFixed(digits)}%`;
 
+/** 룰셋의 세율(0.154) → "15.4%" */
+export const rate = (r: number) => `${+(r * 100).toFixed(2)}%`;
+
 export const num = (n: number, digits = 4) =>
   n.toLocaleString("ko-KR", { maximumFractionDigits: digits });
 

@@ -1,6 +1,8 @@
 import type { Account, Asset, Trade } from "./types";
 import { buildHoldings } from "./engine";
 import type { AssetKind } from "@isa-lab/tax-engine/types";
+import type { TaxRuleSet } from "@isa-lab/tax-engine/rules";
+import { wonShort } from "@/lib/format";
 
 export interface PositionRow {
   asset: Asset;
@@ -111,10 +113,9 @@ export function computeMetrics(params: {
  * 금융소득종합과세 경고.
  *
  * 국내상장 해외·채권 ETF 매매차익은 배당소득이라 다른 이자·배당과 합쳐
- * 연 2,000만원을 넘으면 종합과세로 넘어간다. ISA를 쓰는 큰 이유 중 하나가
- * 이 합산을 피하는 것인데, 화면에 안 나오면 보이지 않는다.
+ * 기준금액(룰셋)을 넘으면 종합과세로 넘어간다. 딱 기준금액이면 아직 분리과세다.
+ * ISA를 쓰는 큰 이유 중 하나가 이 합산을 피하는 것인데, 화면에 안 나오면 보이지 않는다.
  */
-export const FINANCIAL_INCOME_THRESHOLD = 20_000_000;
 
 export interface FinancialIncomeWarning {
   level: "none" | "near" | "over";
@@ -122,21 +123,22 @@ export interface FinancialIncomeWarning {
   message: string;
 }
 
-export function financialIncomeWarning(dividendIncomeKrw: number): FinancialIncomeWarning {
-  if (dividendIncomeKrw >= FINANCIAL_INCOME_THRESHOLD) {
+export function financialIncomeWarning(dividendIncomeKrw: number, rules: TaxRuleSet): FinancialIncomeWarning {
+  const limit = rules.financialIncomeThreshold.value;
+  if (dividendIncomeKrw > limit) {
     return {
       level: "over",
       amount: dividendIncomeKrw,
       message:
-        "배당소득으로 잡히는 금액이 연 2,000만원을 넘었습니다. 금융소득종합과세 대상이 되어 다른 소득과 합산해 누진세율이 적용될 수 있습니다. ISA 계좌에서는 이 합산에 들어가지 않습니다.",
+        `배당소득으로 잡히는 금액이 연 ${wonShort(limit)}을 넘었습니다. 금융소득종합과세 대상이 되어 다른 소득과 합산해 누진세율이 적용될 수 있습니다. ISA 계좌에서는 이 합산에 들어가지 않습니다.`,
     };
   }
-  if (dividendIncomeKrw >= FINANCIAL_INCOME_THRESHOLD * 0.7) {
+  if (dividendIncomeKrw >= limit * 0.7) {
     return {
       level: "near",
       amount: dividendIncomeKrw,
       message:
-        "배당소득으로 잡히는 금액이 연 2,000만원 기준선에 가까워졌습니다. 넘으면 금융소득종합과세 대상이 됩니다.",
+        `배당소득으로 잡히는 금액이 연 ${wonShort(limit)} 기준선에 가까워졌습니다. 넘으면 금융소득종합과세 대상이 됩니다.`,
     };
   }
   return { level: "none", amount: dividendIncomeKrw, message: "" };
