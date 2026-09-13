@@ -14,6 +14,6 @@
 - 엔진 패키지는 빌드 없이 소스(.ts)를 그대로 소비한다 — Next는 `transpilePackages`, Metro는 기본으로 워크스페이스를 트랜스파일한다
 
 ## 결과
-- 웹 import: `@/lib/tax/engine` → `@isa-lab/tax-engine/engine` (10파일)
+- 웹 import: `@/lib/tax/*` → `@isa-lab/tax-engine/*` (13파일)
 - 테스트는 루트 `tests/`에 그대로, vitest alias로 패키지를 가리킨다. 59개 통과 확인
 - `tsconfig.json`은 `apps/`를 제외한다(RN 타입과 섞이지 않게)

@@ -29,7 +29,7 @@ const enacted = <T>(value: T, note: string): Sourced<T> => ({ value, status: "en
 export const VERIFIED_AT = "2026-09-14";
 
 export const SOURCES: { label: string; url: string }[] = [
-  // 「현행」 통합본 딥링크(/법령/증권거래세법시행령/제5조)는 하루 먼저 공포된 다른 개정본이라 옛 세율을 보여 준다. 세율 개정본(대통령령 제36001호)에 고정한다
+  // 세율을 바꾼 개정본(대통령령 제36001호)에 고정한다. 「현행」 통합본 딥링크는 뒤에 다른 개정이 겹치면 다른 조문을 보여 준 적이 있다
   { label: "증권거래세율 — 증권거래세법 시행령 제5조 (대통령령 제36001호, 2026.1.1 시행)", url: "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=282431" },
   { label: "유가증권시장 농어촌특별세 0.15% — 농어촌특별세법 제5조", url: "https://www.law.go.kr/법령/농어촌특별세법/제5조" },
   { label: "ETF 과세 — 국내주식형 비과세 · 해외지수 ETF 배당소득 (소득세법 시행령 제26조의2)", url: "https://www.law.go.kr/법령/소득세법시행령/제26조의2" },
