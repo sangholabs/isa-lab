@@ -76,7 +76,21 @@ npm run mobile
 
 `npm run mobile` 뒤 터미널의 QR을 폰 **Expo Go**로 찍습니다. 폰과 맥이 같은 Wi-Fi여야 합니다. iOS 시뮬레이터는 `i`, Android 에뮬레이터는 `a`입니다.
 
-로컬 릴리스 빌드(`npx expo prebuild` 뒤 Xcode·Gradle)를 할 때는 두 가지를 조심하세요. Android는 JDK 17로 빌드합니다. Android Studio에 들어 있는 JDK 25로는 CMake 설정 단계에서 실패합니다. 그리고 prebuild가 `package.json`의 `ios`·`android` 스크립트를 `expo run:*`으로 바꾸니 커밋 전에 되돌립니다. `ios/`·`android/`는 prebuild가 만드는 폴더라 저장소에 넣지 않습니다.
+### 개발 도구
+
+폰의 Expo Go만으로도 개발하고 확인할 수 있습니다. 시뮬레이터·에뮬레이터나 로컬 릴리스 빌드를 쓸 때만 아래 도구가 더 필요하고, 합쳐서 20GB 넘게 차지합니다.
+
+| 하려는 것 | 필요한 도구 | 확인한 버전 |
+|---|---|---|
+| 테스트 · 웹 · 폰에서 보기 | Node.js · npm, 폰에 Expo Go | Node 24 · npm 11 · Expo Go(SDK 57) |
+| iOS 시뮬레이터 · 릴리스 빌드 | Xcode(iOS 플랫폼 포함) · CocoaPods(`brew install cocoapods`) | Xcode 26.6 · CocoaPods 1.17 |
+| Android 에뮬레이터 · 릴리스 빌드 | Android Studio(SDK Platform 36 · Build-Tools 36 · 에뮬레이터) · JDK 17(`brew install openjdk@17`) | Android Studio 2026.1 · 에뮬레이터 Android 16(API 36) · JDK 17 |
+| 스토어 빌드 · 제출 | EAS 클라우드 빌드. 로컬에 Xcode·Android Studio가 없어도 됩니다 | — |
+
+로컬 릴리스 빌드(`npx expo prebuild` 뒤 Xcode·Gradle)는 이 점을 조심하세요.
+- Android는 JDK 17로 빌드합니다. Android Studio에 들어 있는 JDK 25로는 CMake 설정 단계에서 실패합니다. Gradle을 돌리기 전에 `JAVA_HOME=$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home`, `ANDROID_HOME=$HOME/Library/Android/sdk`를 잡아 둡니다.
+- prebuild가 `package.json`의 `ios`·`android` 스크립트를 `expo run:*`으로 바꿉니다. 커밋 전에 되돌립니다.
+- `ios/`·`android/`는 prebuild가 만드는 폴더라 저장소에 넣지 않습니다.
 
 ## 구조
 
@@ -96,7 +110,7 @@ apps/mobile/
 |---|---|
 | PRD v0.1 기능 | 완료 |
 | 아이콘 · 스플래시 · 스토어 그래픽 | 완료 |
-| 개인정보처리방침 · 문의 링크 | 완료 (웹 배포는 main 병합 후) |
+| 개인정보처리방침 · 문의 링크 | 완료 ([isa-lab.vercel.app/privacy](https://isa-lab.vercel.app/privacy) 공개) |
 | 스토어 등록 문구 | [초안](../../docs/store/listing.md) |
 | Apple · Google 개발자 계정, EAS 빌드 | 대기 |
 | Android 확인 (뒤로가기 · 키보드 · 적응형 아이콘) | 에뮬레이터 완료 (Android 16, 릴리스 APK) · 실기기 대기 |

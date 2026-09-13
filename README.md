@@ -221,6 +221,8 @@ npm run dev   # http://localhost:3000
 
 환경변수 없음. 포트폴리오와 API 키는 브라우저 `localStorage`에만 저장되고 서버로 가지 않습니다.
 
+Node.js 24 · npm 11에서 확인했습니다. 앱을 시뮬레이터·에뮬레이터로 돌리거나 직접 빌드할 때 필요한 도구는 [apps/mobile/README.md](apps/mobile/README.md#개발-도구)에 정리했습니다.
+
 ```bash
 npm test          # 세금·주문·성과·리서치 점수·앱 입력 테스트 75개
 npm run build     # 프로덕션 빌드
