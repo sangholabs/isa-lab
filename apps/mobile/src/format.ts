@@ -1,4 +1,4 @@
-/** 원 단위 숫자를 "1,234,567원"으로. Hermes의 Intl 지원 여부에 기대지 않는다. */
+/** 원 단위 숫자를 "1,234,567원"으로. */
 export function won(n: number): string {
   const sign = n < 0 ? "-" : "";
   const s = Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

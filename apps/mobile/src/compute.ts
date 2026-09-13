@@ -11,8 +11,12 @@ export interface Outcome {
 }
 
 export function toRealized(state: AppState): RealizedPnl[] {
+  // 이익·손실을 합치지 않고 두 행으로 넘긴다 — 통산할지는 엔진이 정한다 (ADR-0004)
   return (Object.keys(state.entries) as AssetKind[])
-    .map((kind) => ({ kind, amount: manwonToWon(state.entries[kind].profit) - manwonToWon(state.entries[kind].loss) }))
+    .flatMap((kind) => [
+      { kind, amount: manwonToWon(state.entries[kind].profit) },
+      { kind, amount: -manwonToWon(state.entries[kind].loss) },
+    ])
     .filter((r) => r.amount !== 0);
 }
 

@@ -25,7 +25,6 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": { "favicon": "./assets/favicon.png" },
-    "extra": { "webUrl": "https://isa-lab.vercel.app" }
+    "web": { "favicon": "./assets/favicon.png" }
   }
 }

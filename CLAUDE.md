@@ -1,7 +1,7 @@
 # ISA Lab — 작업 규칙
 
 ## 구조 (npm workspaces · 루트 = Next.js 웹)
-- `src/` 웹 · `packages/tax-engine/` 세금 엔진(웹·앱 공유, 의존성 0) · `apps/mobile/` 덜내 앱(Expo) · `tests/` vitest 59
+- `src/` 웹 · `packages/tax-engine/` 세금 엔진(웹·앱 공유, 의존성 0) · `apps/mobile/` 덜내 앱(Expo) · `tests/` vitest 69
 - 명령: `npm install`(루트 한 번) · `npm test` · `npm run dev`(웹) · `npm run mobile`(앱)
 
 ## 절대 규칙
