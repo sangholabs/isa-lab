@@ -69,6 +69,7 @@ ISA 안에서는 통산이 되고, 남은 순이익에서 비과세 한도를 �
 
 ### 모바일 앱 — 덜내
 세금 비교만 떼어낸 iOS·Android 앱입니다. 같은 세금 엔진을 폰 안에서 돌리고, 서버·로그인·네트워크가 없습니다. 자세한 설계는 [apps/mobile](apps/mobile/README.md).
+Android는 [APK를 받아 바로 설치](apps/mobile/README.md#설치-android-미리보기)할 수 있습니다.
 
 <p><img src="docs/store/screenshots/1-result.jpg" width="180" alt="덜내 결과 화면"> <img src="docs/store/screenshots/3-sources.jpg" width="180" alt="덜내 근거 화면"></p>
 

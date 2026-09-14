@@ -35,6 +35,20 @@ ISA가 세금을 아껴 준다는 말은 흔한데, **내 매매 기준으로 �
 
 입력과 설정은 기기에만 저장되고, 앱을 다시 열면 그대로 돌아옵니다. 「예시로 보기」를 누르면 입력을 채운 뒤 결과 화면으로 바로 갑니다.
 
+## 설치 (Android 미리보기)
+
+**[APK 받기](https://github.com/sangholabs/isa-lab/releases/download/deolnae-v0.1.0/deolnae-0.1.0-preview.apk)** · 66 MB · Android 7.0 이상 · 버전 0.1.0 · [릴리스](https://github.com/sangholabs/isa-lab/releases/tag/deolnae-v0.1.0)
+
+스토어에 올리기 전의 미리보기 빌드입니다([EAS Build](https://docs.expo.dev/build/internal-distribution/) `preview` 프로필). 폰에서 받아 바로 설치합니다.
+
+1. 폰 브라우저로 위 링크를 열어 APK를 받습니다.
+2. 받은 파일을 엽니다. 처음이면 파일을 연 앱(브라우저나 「내 파일」)에 「출처를 알 수 없는 앱 설치」를 허용하라는 안내가 나옵니다. 허용한 뒤 돌아와 설치합니다.
+3. Play 프로텍트가 앱을 검사하거나 경고하면 안내에 따라 설치를 계속합니다.
+
+- 앱은 아무것도 서버로 보내지 않고, 입력은 폰에만 저장됩니다 ([개인정보처리방침](https://isa-lab.vercel.app/privacy)).
+- 나중에 스토어 버전을 설치하려면 이 미리보기 앱을 먼저 지워야 할 수 있습니다. 서명 키가 다르기 때문입니다.
+- iOS는 받을 수 있는 빌드가 없습니다. TestFlight나 App Store 등록이 필요합니다.
+
 ---
 
 ## 설계에서 신경 쓴 것
@@ -112,7 +126,8 @@ apps/mobile/
 | 아이콘 · 스플래시 · 스토어 그래픽 | 완료 |
 | 개인정보처리방침 · 문의 링크 | 완료 ([isa-lab.vercel.app/privacy](https://isa-lab.vercel.app/privacy) 공개) |
 | 스토어 등록 문구 | [초안](../../docs/store/listing.md) |
-| Apple · Google 개발자 계정, EAS 빌드 | 대기 |
+| EAS 빌드 (Android 미리보기 APK) | 완료 · [설치 안내](#설치-android-미리보기) |
+| Apple · Google 개발자 계정, 스토어 빌드 | 대기 |
 | Android 확인 (뒤로가기 · 키보드 · 적응형 아이콘) | 에뮬레이터 완료 (Android 16, 릴리스 APK) · 실기기 대기 |
 
 ## 알려진 한계

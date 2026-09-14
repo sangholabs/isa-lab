@@ -2,6 +2,7 @@
   "expo": {
     "name": "덜내",
     "slug": "deolnae",
+    "owner": "sangholabs",
     "scheme": "deolnae",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -83,6 +84,11 @@
           "backgroundColor": "#f7f7f5"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3d158400-1c67-487f-ab28-84fec19c74ff"
+      }
+    }
   }
 }

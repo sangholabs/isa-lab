@@ -18,6 +18,7 @@
 - 덜내 `eas.json`(미리보기 APK · 프로덕션) · iOS 개인정보 매니페스트 · iOS 다크·틴트 아이콘
 - `docs/adr/0005` — 앱 1차는 원격 업데이트(EAS Update) 없이 낸다. 룰셋 변경은 새 버전으로 (#ADR-0005)
 - GitHub Actions — push·PR마다 `npm ci` → `npm test` (`.github/workflows/test.yml`). README 테스트 배지를 CI 상태 배지로
+- 덜내 Android 미리보기 APK — EAS Build `preview` 프로필로 빌드해 GitHub 릴리스 `deolnae-v0.1.0`에 올리고, README에 다운로드 링크·설치 안내. `app.json`에 EAS 프로젝트 연결
 
 ### Changed
 - 웹 import 경로 `@/lib/tax/*` → `@isa-lab/tax-engine/*` (동작 변경 없음)
